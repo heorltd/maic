@@ -8,5 +8,6 @@ Maintainer: Rob Young <rob.young@heor.co.uk>
 Description: Generalised implementation of the NICE DSU MAIC methodology
 License: GPL-3
 Imports:
-    
+  Hmisc,
+  matrixStats
 RoxygenNote: 5.0.1
