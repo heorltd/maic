@@ -5,7 +5,7 @@ Version: 0.0.1
 Date: 2017-11-02
 Author: Rob Young
 Maintainer: Rob Young <rob.young@heor.co.uk>
-Description: Generalised implementation of the NICE DSU MAIC methodology
+Description: Generalised implementation of the NICE DSU MAIC methodology.
 License: GPL-3
 Imports:
   Hmisc,

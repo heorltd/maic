@@ -30,8 +30,7 @@
 # -----------------------------------------------------------------------------
 ###############################################################################
 
-require(matrixStats, quietly = TRUE)
-require(Hmisc, quietly = TRUE)
+#' @importFrom stats optim median sd var quantile
 
 STR.MATCH.ID <- "match.id"
 STR.TARGET.VARIABLE <- "target.variable"
@@ -110,7 +109,7 @@ PTN.QUANTILE <- paste0(STR.QUANTILE, "\\.(d+)")
 #' @return An object of class \code{maic.input}
 #' @example R/maic.example.R
 #' @export
-createMAICInputMatrix <- function(index,
+createMAICInput <- function(index,
                       target,
                       dictionary,
                       matching.variables){
@@ -268,7 +267,7 @@ createMAICInputMatrix <- function(index,
 #' @param excluded Logical vector; which index rows have been excluded from 
 #'                 matching
 #' @param input.matrix Numeric matrix, centred MAIC input matrix
-#' @return An object of class \code{c(maic.input)}
+#' @return An object of class \code{maic.input}
 #' @export
 maic.input <- function(n.matches,
                        excluded,
@@ -281,19 +280,48 @@ maic.input <- function(n.matches,
   
 
 # Generic function for maic weighting
+#' Calculate MAIC weights
+#' 
+#' This function calculates the weights to apply to records for 
+#' Matching-Adjusted Indirect Comparison (MAIC), from either a raw input
+#' matrix or a \code{maic.input} object
+#' 
+#' @param x Either a \code{maic.input} object or a MAIC input matrix
+#' @return A numeric vector of weights corresponding to the rows in the input
+#'         matrix
+#' @example R/maic.example.R
 #' @export
 maicWeight <- function(x){
   UseMethod("maicWeight", x)
 }
 
+#' Calculate MAIC weights
+#' 
+#' This function calculates the weights to apply to records for 
+#' Matching-Adjusted Indirect Comparison (MAIC), from a \code{maic.input} 
+#' object
+#' 
+#' @param x A \code{maic.input} object
+#' @return A numeric vector of weights corresponding to the rows in the input
+#'         matrix
+#' @example R/maic.example.R
 #' @export
 maicWeight.maic.input <- function(x){
   maicWeight.default(x[["input.matrix"]])
 }
 
 # The basic MAIC weighting code
+#' Calculate MAIC weights
+#' 
+#' This function calculates the weights to apply to records for 
+#' Matching-Adjusted Indirect Comparison (MAIC), from a raw input matrix
+#' 
+#' @param x A MAIC input matrix
+#' @return A numeric vector of weights corresponding to the rows in the input
+#'         matrix
+#' @example R/maic.example.R
 #' @export
-maicWeight.default <- function(input.matrix){
+maicWeight.default <- function(x){
   # The maic functions, as per NICE DSU
   # Objective function
   objfn <- function(a1, X){
@@ -305,20 +333,38 @@ maicWeight.default <- function(input.matrix){
     colSums(sweep(X,1,exp(X %*% a1), "*"))
   }
   
-  opt1 <- optim(par=rep(0,ncol(input.matrix)),fn=objfn,gr=gradfn,X=input.matrix,method="BFGS")
+  opt1 <- optim(par=rep(0, ncol(x)),
+                fn=objfn,
+                gr=gradfn,
+                X=x,
+                method="BFGS")
   a1 <- opt1$par
-  wt <- exp(input.matrix %*% a1)
+  wt <- exp(x %*% a1)
   
   return (wt)
 }
 
 # Report the rebalanced covariates
+#' Calculate the rebalanced covariates
+#' 
+#' This function calculates the raw, target and achieved covariates given
+#' a set of weights
+#' 
+#' @param index A matrix or data.frame containing patient-level data
+#' @param target A list containing target summary data
+#' @param dictionary A data frame containing the columns "match.id",
+#'                   "target.variable", "index.variable" and "match.type"
+#' @param matching.variables A character vector indicating the match.id to use
+#' @param weights A numeric vector with weights corresponding to the index 
+#'                data rows
+#' @return An object of class \code{maic.covariates}
+#' @example R/maic.example.R
 #' @export
-reportCovariates <- function(index.df,
-                                  target.row,
-                                  dictionary,
-                                  matching.variables,
-                                  weights){
+reportCovariates <- function(index,
+                             target,
+                             dictionary,
+                             matching.variables,
+                             weights){
   ##### Sanity checking #####
   # Check vital columns in dictionary
   colnames(dictionary) <- tolower(colnames(dictionary))
@@ -351,70 +397,70 @@ reportCovariates <- function(index.df,
     index.var <- dictionary[mv, STR.INDEX.VARIABLE]
     match.type <- dictionary[mv, STR.MATCH.TYPE]
     
-    if (!(target.var %in% names(target.row))){
+    if (!(target.var %in% names(target))){
       stop(paste(target.var, "not in target row"))
     }
     
-    if (!(index.var %in% colnames(index.df))){
+    if (!(index.var %in% colnames(index))){
       stop(paste(index.var, "not in index data"))
     }
     
     # Could do a switch here, but I don't trust side effects in R
     if (match.type == STR.MINIMUM){
-      i.v <- as.numeric(index.df[, index.var])
-      t.v <- as.numeric(target.row[[target.var]])
+      i.v <- as.numeric(index[, index.var])
+      t.v <- as.numeric(target[[target.var]])
       if (!is.finite(t.v)) next()
       raw.value[[mv]] <- min(i.v, na.rm=TRUE)
       target.value[[mv]] <- t.v
       adjusted.value[[mv]] <- min(i.v * ifelse(weights > 0, 1, NA), na.rm = TRUE)
     } else if (match.type == STR.MAXIMUM){
-      i.v <- as.numeric(index.df[, index.var])
-      t.v <- as.numeric(target.row[[target.var]])
+      i.v <- as.numeric(index[, index.var])
+      t.v <- as.numeric(target[[target.var]])
       if (!is.finite(t.v)) next()
       raw.value[[mv]] <- max(i.v, na.rm=TRUE)
       target.value[[mv]] <- t.v
       adjusted.value[[mv]] <- max(i.v * ifelse(weights > 0, 1, 0))
     } else if (match.type == STR.MEDIAN){
-      i.v <- as.numeric(index.df[, index.var])
-      t.v <- as.numeric(target.row[[target.var]])
+      i.v <- as.numeric(index[, index.var])
+      t.v <- as.numeric(target[[target.var]])
       if (!is.finite(t.v)) next()
       raw.value[[mv]] <- median(i.v, na.rm = TRUE)
       target.value[[mv]] <- t.v
       adjusted.value[[mv]] <- matrixStats::weightedMedian(i.v, weights)
     } else if (match.type == STR.MEAN){
-      i.v <- as.numeric(index.df[, index.var])
-      t.v <- as.numeric(target.row[[target.var]])
+      i.v <- as.numeric(index[, index.var])
+      t.v <- as.numeric(target[[target.var]])
       if (!is.finite(t.v)) next()
       raw.value[[mv]] <- mean(i.v, na.rm = TRUE)
       target.value[[mv]] <- t.v
       adjusted.value[[mv]] <- sum(i.v * weights) / sum(weights)
     } else if (match.type == STR.PROPORTION){
-      i.v <- as.numeric(index.df[, index.var])
-      t.v <- as.numeric(target.row[[target.var]])
+      i.v <- as.numeric(index[, index.var])
+      t.v <- as.numeric(target[[target.var]])
       if (!is.finite(t.v)) next()
       raw.value[[mv]] <- mean(i.v, na.rm = TRUE)
       target.value[[mv]] <- t.v
       adjusted.value[[mv]] <- sum(i.v * weights) / sum(weights)
     } else if (match.type == STR.STANDARD.DEVIATION){
-      i.v <- as.numeric(index.df[, index.var])
-      t.v <- as.numeric(target.row[[target.var]])
+      i.v <- as.numeric(index[, index.var])
+      t.v <- as.numeric(target[[target.var]])
       if (!is.finite(t.v)) next()
       raw.value[[mv]] <- sd(i.v, na.rm = TRUE)
       target.value[[mv]] <- t.v
-      adjusted.value[[mv]] <- sqrt(wtd.var(iv, na.rm = TRUE))
+      adjusted.value[[mv]] <- sqrt(Hmisc::wtd.var(i.v, na.rm = TRUE))
     } else if (match.type == STR.VARIANCE){
-      i.v <- as.numeric(index.df[, index.var])
-      t.v <- as.numeric(target.row[[target.var]])
+      i.v <- as.numeric(index[, index.var])
+      t.v <- as.numeric(target[[target.var]])
       if (!is.finite(t.v)) next()
       raw.value[[mv]] <- var(i.v, na.rm = TRUE)
       target.value[[mv]] <- t.v
-      adjusted.value[[mv]] <- wtd.var(iv, na.rm = TRUE)
+      adjusted.value[[mv]] <- Hmisc::wtd.var(i.v, na.rm = TRUE)
     } else if (grepl(PTN.QUANTILE, match.type)){
       mtch <- regexec(PTN.QUANTILE, match.type)
       v1 <- mtch[[1]][1]
       d <- as.numeric(substr(match.type,v1[2],(v1[2] + attr(v1, "match.length")[2] - 1)))
-      i.v <- as.numeric(index.df[, index.var])
-      t.v <- as.numeric(target.row[[target.var]])
+      i.v <- as.numeric(index[, index.var])
+      t.v <- as.numeric(target[[target.var]])
       if (!is.finite(t.v)) next()
       raw.value[[mv]] <- quantile(i.v, d, na.rm = TRUE)
       target.value[[mv]] <- t.v
@@ -423,12 +469,14 @@ reportCovariates <- function(index.df,
       stop (paste(match.type, "is an unrecognised match type"))
     }
   }
-  
+    
   res <- list(
     "raw.values" = raw.value,
     "target.values" = target.value,
     "adjusted.values" = adjusted.value
   )
+  
+  class(res) <- "maic.covariates"
   
   return(res)
 }
