@@ -52,54 +52,63 @@ PTN.QUANTILE <- paste0(STR.QUANTILE, "\\.(d+)")
 #' 
 #' From index patient level data and a set of target baseline characteristics,
 #' construct the input matrix to the maic.
-#' The dictionary is a data frame containing at least 4 vectors:
-#' "match.id" - the name of the match, used to refer to it in the
+#' 
+#' The \code{dictionary} is a data frame containing at least 4 vectors:
+#' \itemize{
+#' \item "match.id" - the name of the match, used to refer to it in the
 #'              matching.variables list
-#' "target.variable" - the name of the variable in the target values
+#' \item "target.variable" - the name of the variable in the target values
 #'                     list use to inform the matching. Use dependent on
 #'                     type
-#' "index.variable" - the name of the variable in the index data frame
+#' \item "index.variable" - the name of the variable in the index data frame
 #'                    to match on.
-#' "match.type" - A string indicating the match type to use. The following
+#' \item "match.type" - A string indicating the match type to use. The following
 #'                values are accepted:
-#'   minimum - records with index values lower than the target variable will
+#'   \itemize{
+#'   \item minimum - records with index values lower than the target variable will
 #'             be discarded
-#'   maximum - records with index values greater than the target variable will
+#'   \item maximum - records with index values greater than the target variable will
 #'             be discarded
-#'   median - records with index values greater than the target variable will
+#'   \item median - records with index values greater than the target variable will
 #'            be assigned a value of 1, those lower 0. The target for matching
 #'            will be a mean of 0.5
-#'   quantile.X - Generalisation of the median code. records with index values
+#'   \item quantile.X - Generalisation of the median code. records with index values
 #'                greater than the target variable will be assigned a value of 
 #'                1, those lower 0. The target for matching will be a mean of 
 #'                0.X
-#'   mean - records will match index value directly onto target value
-#'   proportion - as mean, with index values encoded as 1 = true, 0 = false.
+#'   \item mean - records will match index value directly onto target value
+#'   \item proportion - as mean, with index values encoded as 1 = true, 0 = false.
 #'                If target proportion is exclusive (0 or 1 exactly) then
 #'                excluded members of the index population shall receive no
 #'                weighting.
-#'   sd - a matching on the square of the index value on the sum of the
+#'   \item sd - a matching on the square of the index value on the sum of the
 #'        square of the target mean and target standard deviation. The
 #'        target mean is provided by the "supplementary.target.variable"
-#'   var - a matching on the square of the index value on the sum of the
+#'   \item var - a matching on the square of the index value on the sum of the
 #'         square of the target mean and the variance specified by the target
 #'         variable. The target mean is provided by the 
 #'         "supplementary.target.variable"
+#'   }
+#'  }
 #'  In addition, the following vector may be necessary:
-#'  "supplementary.target.variable" - The name of the variable in the target
+#'  \itemize{
+#'  \item "supplementary.target.variable" - The name of the variable in the target
 #'                                    values list that provides e.g. the mean
 #'                                    for sd and var matching.
+#'  }
 #' It is possible to use these match types to match on other variables, e.g.
 #' variance, by pre-processing the input correctly.
-#' Finally, the matching.variables is a list or character vector containing
-#' match.id s to be acted upon in this MAIC.
+#' 
+#' Finally, the \code{matching.variables} is a list or character vector containing
+#' \code{match.id}s to be acted upon in this MAIC.
+#' 
 #' @param index A matrix or data.frame containing patient-level data
 #' @param target A list containing target summary data
 #' @param dictionary A data frame containing the columns "match.id",
 #'                   "target.variable", "index.variable" and "match.type"
 #' @param matching.variables A character vector indicating the match.id to use
-#' @return A numeric matrix for input to the MAIC matching process
-#' @examples
+#' @return An object of class \code{maic.input}
+#' @example R/maic.example.R
 #' @export
 createMAICInputMatrix <- function(index,
                       target,
@@ -252,9 +261,39 @@ createMAICInputMatrix <- function(index,
   return(res)
 }
 
+# Constructor function for maic.input
+#' Constructor for a maic.input object
+#' 
+#' @param n.matches Numeric, number of matching variables
+#' @param excluded Logical vector; which index rows have been excluded from 
+#'                 matching
+#' @param input.matrix Numeric matrix, centred MAIC input matrix
+#' @return An object of class \code{c(maic.input)}
+#' @export
+maic.input <- function(n.matches,
+                       excluded,
+                       input.matrix){
+  structure(list("n.matches" = n.matches,
+                 "excluded" = excluded,
+                 "input.matrix" = input.matrix),
+            class = "maic.input")
+}
+  
+
+# Generic function for maic weighting
+#' @export
+maicWeight <- function(x){
+  UseMethod("maicWeight", x)
+}
+
+#' @export
+maicWeight.maic.input <- function(x){
+  maicWeight.default(x[["input.matrix"]])
+}
+
 # The basic MAIC weighting code
 #' @export
-maicWeight <- function(input.matrix){
+maicWeight.default <- function(input.matrix){
   # The maic functions, as per NICE DSU
   # Objective function
   objfn <- function(a1, X){
