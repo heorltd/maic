@@ -480,3 +480,144 @@ reportCovariates <- function(index,
   
   return(res)
 }
+
+#' calculate MAIC weights
+#' 
+#' From index patient level data and a set of target baseline characteristics,
+#' calculate MAIC weights.
+#' 
+#' The \code{dictionary} is a data frame containing at least 4 vectors:
+#' \itemize{
+#' \item "match.id" - the name of the match, used to refer to it in the
+#'              matching.variables list
+#' \item "target.variable" - the name of the variable in the target values
+#'                     list use to inform the matching. Use dependent on
+#'                     type
+#' \item "index.variable" - the name of the variable in the index data frame
+#'                    to match on.
+#' \item "match.type" - A string indicating the match type to use. The following
+#'                values are accepted:
+#'   \itemize{
+#'   \item minimum - records with index values lower than the target variable will
+#'             be discarded
+#'   \item maximum - records with index values greater than the target variable will
+#'             be discarded
+#'   \item median - records with index values greater than the target variable will
+#'            be assigned a value of 1, those lower 0. The target for matching
+#'            will be a mean of 0.5
+#'   \item quantile.X - Generalisation of the median code. records with index values
+#'                greater than the target variable will be assigned a value of 
+#'                1, those lower 0. The target for matching will be a mean of 
+#'                0.X
+#'   \item mean - records will match index value directly onto target value
+#'   \item proportion - as mean, with index values encoded as 1 = true, 0 = false.
+#'                If target proportion is exclusive (0 or 1 exactly) then
+#'                excluded members of the index population shall receive no
+#'                weighting.
+#'   \item sd - a matching on the square of the index value on the sum of the
+#'        square of the target mean and target standard deviation. The
+#'        target mean is provided by the "supplementary.target.variable"
+#'   \item var - a matching on the square of the index value on the sum of the
+#'         square of the target mean and the variance specified by the target
+#'         variable. The target mean is provided by the 
+#'         "supplementary.target.variable"
+#'   }
+#'  }
+#'  In addition, the following vector may be necessary:
+#'  \itemize{
+#'  \item "supplementary.target.variable" - The name of the variable in the target
+#'                                    values list that provides e.g. the mean
+#'                                    for sd and var matching.
+#'  }
+#' It is possible to use these match types to match on other variables, e.g.
+#' variance, by pre-processing the input correctly.
+#' 
+#' Finally, the \code{matching.variables} is a list or character vector containing
+#' \code{match.id}s to be acted upon in this MAIC.
+#' 
+#' @param index A matrix or data.frame containing patient-level data
+#' @param target A list containing target summary data
+#' @param dictionary A data frame containing the columns "match.id",
+#'                   "target.variable", "index.variable" and "match.type"
+#' @param matching.variables A character vector indicating the match.id to use
+#' @param reporting.variables A optional character vector of matches to report
+#'                            upon (defaults to \code{matching.variables})
+#' @param check.residuals Logical - calculate residuals to check
+#' @param residual.warning.level Numeric - level at which to raise a warning
+#'                               that matching has not succeeded
+#' @return An object of class \code{MAICweights}
+#' @example R/maic.weight.example.R
+#' @export
+maicMatching <- function(index,
+                         target,
+                         dictionary,
+                         matching.variables,
+                         reporting.variables = NULL,
+                         check.residuals = TRUE,
+                         residual.warning.level = 1e-3){
+  
+  if (is.null(reporting.variables)){
+    reporting.variables <- matching.variables
+  }
+  
+  ip.mat <- createMAICInput(index,
+                            target,
+                            dictionary,
+                            matching.variables)
+  
+  
+  if (ip.mat$n.matches == 0){
+    wts <- rep(1, nrow(index))
+  } else {
+    wt <- maicWeight(ip.mat)
+    wts <- rep(0, nrow(index))
+    wts[!ipmat$excluded] <- wt
+  }
+  
+  covars <- reportCovariates(index,
+                             target,
+                             dictionary,
+                             reporting.variables,
+                             wts)
+  
+  res <- list(
+    "weights" = wts,
+    "covariates" = covars
+  )
+  
+  class(res) <- "MAICweights"
+  
+  if (check.residuals){
+    mtch.covars <- reportCovariates(index,
+                                    target,
+                                    dictionary,
+                                    matching.variables,
+                                    wts)
+    
+    resids <- numeric(0)
+    
+    for (mv in matching.variables){
+      rownames(dictionary) <- dictionary[, STR.MATCH.ID]
+      mv.type <- dictionary[mv, STR.MATCH.TYPE]
+      
+      resids[mv] <- 0
+      
+      if (!(mv.type %in% c("min", "max"))){
+        tgt <- mtch.covars$target.values[[mv]]
+        if (is.finite(tgt)){
+          adj <- mtch.covars$adjusted.values[[mv]]
+          
+          resids[mv] <- (tgt - adj) ^ 2
+        }
+      }
+    }
+    
+    res[["residuals"]] <- resids
+    
+    if (sum(resids) > residual.warning.level){
+      warning("Matching failure")
+    }
+  }
+  
+  return (res)
+}
