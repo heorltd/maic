@@ -568,6 +568,7 @@ maicMatching <- function(index,
   
   if (ip.mat$n.matches == 0){
     wts <- rep(1, nrow(index))
+    wts[ipmat$excluded] <- 0
   } else {
     wt <- maicWeight(ip.mat)
     wts <- rep(0, nrow(index))
