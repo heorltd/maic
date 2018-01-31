@@ -1,7 +1,7 @@
 Package: maic
 Type: Package
 Title: Matching-Adjusted Indirect Comparison
-Version: 0.0.1.9000
+Version: 0.0.2.9000
 Date: 2017-11-02
 Author: Rob Young
 Maintainer: Rob Young <rob.young@heor.co.uk>

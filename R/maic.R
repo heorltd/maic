@@ -136,6 +136,8 @@ createMAICInput <- function(index,
   target.values <- list()
   excluded <- rep(FALSE, nrow(index))
   pld.inputs <- data.frame(dummy = rep(NA, nrow(index)))
+  n.adjustments <- 0
+  
   
   for (mv in matching.variables){
     if (!(mv %in% rownames(dictionary))){
@@ -159,23 +161,27 @@ createMAICInput <- function(index,
       t.v <- as.numeric(target[[target.var]])
       if (!is.finite(t.v)) next()
       excluded[i.v < t.v] <- TRUE
+      n.adjustments <- n.adjustments + 1
     } else if (match.type == STR.MAXIMUM){
       i.v <- as.numeric(index[, index.var])
       t.v <- as.numeric(target[[target.var]])
       if (!is.finite(t.v)) next()
       excluded[i.v > t.v] <- TRUE
+      n.adjustments <- n.adjustments + 1
     } else if (match.type == STR.MEDIAN){
       i.v <- as.numeric(index[, index.var])
       t.v <- as.numeric(target[[target.var]])
       if (!is.finite(t.v)) next()
       pld.inputs[, mv] <- ifelse(i.v < t.v, 1, 0)
       target.values[[mv]] <- 0.5
+      n.adjustments <- n.adjustments + 1
     } else if (match.type == STR.MEAN){
       i.v <- as.numeric(index[, index.var])
       t.v <- as.numeric(target[[target.var]])
       if (!is.finite(t.v)) next()
       pld.inputs[, mv] <- i.v
       target.values[[mv]] <- t.v
+      n.adjustments <- n.adjustments + 1
     } else if (match.type == STR.PROPORTION){
       i.v <- as.numeric(index[, index.var])
       t.v <- as.numeric(target[[target.var]])
@@ -188,6 +194,7 @@ createMAICInput <- function(index,
         pld.inputs[, mv] <- i.v
         target.values[[mv]] <- t.v
       }
+      n.adjustments <- n.adjustments + 1
     } else if (match.type == STR.STANDARD.DEVIATION){
       if (!STR.SUPPLEMENTARY.VARIABLE %in% colnames(dictionary)){
           stop(paste(STR.SUPPLEMENTARY.VARIABLE, "column must be present in dictionary to use", STR.STANDARD.DEVIATION))
@@ -199,6 +206,7 @@ createMAICInput <- function(index,
       if (!is.finite(t.v) || ! is.finite(s.v)) next()
       pld.inputs[, mv] <- i.v * i.v
       target.values[[mv]] <- s.v * s.v + t.v * t.v
+      n.adjustments <- n.adjustments + 1
     } else if (match.type == STR.VARIANCE){
       if (!STR.SUPPLEMENTARY.VARIABLE %in% colnames(dictionary)){
         stop(paste(STR.SUPPLEMENTARY.VARIABLE, "column must be present in dictionary to use", STR.VARIANCE))
@@ -210,6 +218,7 @@ createMAICInput <- function(index,
       if (!is.finite(t.v) || ! is.finite(s.v)) next()
       pld.inputs[, mv] <- i.v * i.v
       target.values[[mv]] <- s.v * s.v + t.v
+      n.adjustments <- n.adjustments + 1
     } else if (grepl(PTN.QUANTILE, match.type)){
       mtch <- regexec(PTN.QUANTILE, match.type)
       v1 <- mtch[[1]][1]
@@ -219,6 +228,7 @@ createMAICInput <- function(index,
       if (!is.finite(t.v)) next()
       pld.inputs[, mv] <- ifelse(i.v < t.v, 1, 0)
       target.values[[mv]] <- d
+      n.adjustments <- n.adjustments + 1
     } else {
       stop (paste(match.type, "is an unrecognised match type"))
     }
@@ -230,6 +240,7 @@ createMAICInput <- function(index,
   n.excluded <- sum(excluded)
   
   res <- list()
+  res[["n.adjustments"]] <- n.adjustments
   res[["n.matches"]] <- n.matches
   res[["excluded"]] <- excluded
   
@@ -255,7 +266,7 @@ createMAICInput <- function(index,
     res[["input.matrix"]] <- input.mt
   }
   
-  class(res) <- "maic.input"
+  class(res) <- "MaicInput"
   
   return(res)
 }
@@ -263,16 +274,20 @@ createMAICInput <- function(index,
 # Constructor function for maic.input
 #' Constructor for a maic.input object
 #' 
+#' @param n.adjustments Numeric, number of variables that have had any
+#'                      comparison performed
 #' @param n.matches Numeric, number of matching variables
 #' @param excluded Logical vector; which index rows have been excluded from 
 #'                 matching
 #' @param input.matrix Numeric matrix, centred MAIC input matrix
 #' @return An object of class \code{maic.input}
 #' @export
-maic.input <- function(n.matches,
+MaicInput <- function(n.adjustments,
+                       n.matches,
                        excluded,
                        input.matrix){
-  structure(list("n.matches" = n.matches,
+  structure(list("n.adjustments" = n.adjustments,
+                 "n.matches" = n.matches,
                  "excluded" = excluded,
                  "input.matrix" = input.matrix),
             class = "maic.input")
@@ -306,7 +321,7 @@ maicWeight <- function(x){
 #'         matrix
 #' @example R/maic.example.R
 #' @export
-maicWeight.maic.input <- function(x){
+maicWeight.MaicInput <- function(x){
   maicWeight.default(x[["input.matrix"]])
 }
 
@@ -409,49 +424,42 @@ reportCovariates <- function(index,
     if (match.type == STR.MINIMUM){
       i.v <- as.numeric(index[, index.var])
       t.v <- as.numeric(target[[target.var]])
-      if (!is.finite(t.v)) next()
       raw.value[[mv]] <- min(i.v, na.rm=TRUE)
       target.value[[mv]] <- t.v
       adjusted.value[[mv]] <- min(i.v * ifelse(weights > 0, 1, NA), na.rm = TRUE)
     } else if (match.type == STR.MAXIMUM){
       i.v <- as.numeric(index[, index.var])
       t.v <- as.numeric(target[[target.var]])
-      if (!is.finite(t.v)) next()
       raw.value[[mv]] <- max(i.v, na.rm=TRUE)
       target.value[[mv]] <- t.v
       adjusted.value[[mv]] <- max(i.v * ifelse(weights > 0, 1, 0))
     } else if (match.type == STR.MEDIAN){
       i.v <- as.numeric(index[, index.var])
       t.v <- as.numeric(target[[target.var]])
-      if (!is.finite(t.v)) next()
       raw.value[[mv]] <- median(i.v, na.rm = TRUE)
       target.value[[mv]] <- t.v
       adjusted.value[[mv]] <- matrixStats::weightedMedian(i.v, weights)
     } else if (match.type == STR.MEAN){
       i.v <- as.numeric(index[, index.var])
       t.v <- as.numeric(target[[target.var]])
-      if (!is.finite(t.v)) next()
       raw.value[[mv]] <- mean(i.v, na.rm = TRUE)
       target.value[[mv]] <- t.v
       adjusted.value[[mv]] <- sum(i.v * weights) / sum(weights)
     } else if (match.type == STR.PROPORTION){
       i.v <- as.numeric(index[, index.var])
       t.v <- as.numeric(target[[target.var]])
-      if (!is.finite(t.v)) next()
       raw.value[[mv]] <- mean(i.v, na.rm = TRUE)
       target.value[[mv]] <- t.v
       adjusted.value[[mv]] <- sum(i.v * weights) / sum(weights)
     } else if (match.type == STR.STANDARD.DEVIATION){
       i.v <- as.numeric(index[, index.var])
       t.v <- as.numeric(target[[target.var]])
-      if (!is.finite(t.v)) next()
       raw.value[[mv]] <- sd(i.v, na.rm = TRUE)
       target.value[[mv]] <- t.v
       adjusted.value[[mv]] <- sqrt(Hmisc::wtd.var(i.v, na.rm = TRUE))
     } else if (match.type == STR.VARIANCE){
       i.v <- as.numeric(index[, index.var])
       t.v <- as.numeric(target[[target.var]])
-      if (!is.finite(t.v)) next()
       raw.value[[mv]] <- var(i.v, na.rm = TRUE)
       target.value[[mv]] <- t.v
       adjusted.value[[mv]] <- Hmisc::wtd.var(i.v, na.rm = TRUE)
@@ -461,7 +469,6 @@ reportCovariates <- function(index,
       d <- as.numeric(substr(match.type,v1[2],(v1[2] + attr(v1, "match.length")[2] - 1)))
       i.v <- as.numeric(index[, index.var])
       t.v <- as.numeric(target[[target.var]])
-      if (!is.finite(t.v)) next()
       raw.value[[mv]] <- quantile(i.v, d, na.rm = TRUE)
       target.value[[mv]] <- t.v
       adjusted.value[[mv]] <- Hmisc::wtd.quantile(i.v, weights, normwt = TRUE, na.rm = TRUE)
@@ -476,7 +483,7 @@ reportCovariates <- function(index,
     "adjusted.values" = adjusted.value
   )
   
-  class(res) <- "maic.covariates"
+  class(res) <- "MaicCovariates"
   
   return(res)
 }
@@ -586,7 +593,7 @@ maicMatching <- function(index,
     "covariates" = covars
   )
   
-  class(res) <- "MAICweights"
+  class(res) <- "MAICWeights"
   
   if (check.residuals){
     mtch.covars <- reportCovariates(index,
