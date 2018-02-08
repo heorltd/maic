@@ -107,7 +107,7 @@ PTN.QUANTILE <- paste0(STR.QUANTILE, "\\.(d+)")
 #'                   "target.variable", "index.variable" and "match.type"
 #' @param matching.variables A character vector indicating the match.id to use
 #' @return An object of class \code{maic.input}
-#' @example R/maic.example.R
+#' @example R/examples/maic.example.R
 #' @export
 createMAICInput <- function(index,
                       target,
@@ -304,7 +304,7 @@ MaicInput <- function(n.adjustments,
 #' @param x Either a \code{maic.input} object or a MAIC input matrix
 #' @return A numeric vector of weights corresponding to the rows in the input
 #'         matrix
-#' @example R/maic.example.R
+#' @example R/examples/maic.example.R
 #' @export
 maicWeight <- function(x){
   UseMethod("maicWeight", x)
@@ -319,7 +319,7 @@ maicWeight <- function(x){
 #' @param x A \code{maic.input} object
 #' @return A numeric vector of weights corresponding to the rows in the input
 #'         matrix
-#' @example R/maic.example.R
+#' @example R/examples/maic.example.R
 #' @export
 maicWeight.MaicInput <- function(x){
   maicWeight.default(x[["input.matrix"]])
@@ -334,7 +334,7 @@ maicWeight.MaicInput <- function(x){
 #' @param x A MAIC input matrix
 #' @return A numeric vector of weights corresponding to the rows in the input
 #'         matrix
-#' @example R/maic.example.R
+#' @example R/examples/maic.example.R
 #' @export
 maicWeight.default <- function(x){
   # The maic functions, as per NICE DSU
@@ -373,7 +373,7 @@ maicWeight.default <- function(x){
 #' @param weights A numeric vector with weights corresponding to the index 
 #'                data rows
 #' @return An object of class \code{maic.covariates}
-#' @example R/maic.example.R
+#' @example R/examples/maic.example.R
 #' @export
 reportCovariates <- function(index,
                              target,
@@ -553,7 +553,7 @@ reportCovariates <- function(index,
 #' @param residual.warning.level Numeric - level at which to raise a warning
 #'                               that matching has not succeeded
 #' @return An object of class \code{MAICweights}
-#' @example R/maic.weight.example.R
+#' @example R/examples/maic.weight.example.R
 #' @export
 maicMatching <- function(index,
                          target,
@@ -575,11 +575,11 @@ maicMatching <- function(index,
   
   if (ip.mat$n.matches == 0){
     wts <- rep(1, nrow(index))
-    wts[ipmat$excluded] <- 0
+    wts[ip.mat$excluded] <- 0
   } else {
     wt <- maicWeight(ip.mat)
     wts <- rep(0, nrow(index))
-    wts[!ipmat$excluded] <- wt
+    wts[!ip.mat$excluded] <- wt
   }
   
   covars <- reportCovariates(index,
@@ -622,7 +622,8 @@ maicMatching <- function(index,
     
     res[["residuals"]] <- resids
     
-    if (sum(resids) > residual.warning.level){
+    if (any(!is.finite(resids)) || 
+        sum(resids) > residual.warning.level){
       warning("Matching failure")
     }
   }
