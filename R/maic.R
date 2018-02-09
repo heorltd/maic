@@ -462,13 +462,13 @@ reportCovariates <- function(index,
       t.v <- as.numeric(target[[target.var]])
       raw.value[[mv]] <- sd(i.v, na.rm = TRUE)
       target.value[[mv]] <- t.v
-      adjusted.value[[mv]] <- sqrt(Hmisc::wtd.var(i.v, na.rm = TRUE))
+      adjusted.value[[mv]] <- sqrt(Hmisc::wtd.var(i.v, weights, na.rm = TRUE))
     } else if (match.type == STR.VARIANCE){
       i.v <- as.numeric(index[, index.var])
       t.v <- as.numeric(target[[target.var]])
       raw.value[[mv]] <- var(i.v, na.rm = TRUE)
       target.value[[mv]] <- t.v
-      adjusted.value[[mv]] <- Hmisc::wtd.var(i.v, na.rm = TRUE)
+      adjusted.value[[mv]] <- Hmisc::wtd.var(i.v, weights, na.rm = TRUE)
     } else if (grepl(PTN.QUANTILE, match.type)){
       mtch <- regexec(PTN.QUANTILE, match.type)
       v1 <- mtch[[1]][1]
@@ -630,7 +630,7 @@ maicMatching <- function(index,
     
     if (any(!is.finite(resids)) || 
         sum(resids) > residual.warning.level){
-      warning("Matching failure")
+      warning("Matching failure on residual check - if using sd or var, consider relaxing warning level")
     }
   }
   
