@@ -160,18 +160,19 @@ createMAICInput <- function(index,
       i.v <- as.numeric(index[, index.var])
       t.v <- as.numeric(target[[target.var]])
       if (!is.finite(t.v)) next()
-      excluded[i.v < t.v] <- TRUE
+      excluded[!is.finite(i.v) | i.v < t.v] <- TRUE
       n.adjustments <- n.adjustments + 1
     } else if (match.type == STR.MAXIMUM){
       i.v <- as.numeric(index[, index.var])
       t.v <- as.numeric(target[[target.var]])
       if (!is.finite(t.v)) next()
-      excluded[i.v > t.v] <- TRUE
+      excluded[!is.finite(i.v) | i.v > t.v] <- TRUE
       n.adjustments <- n.adjustments + 1
     } else if (match.type == STR.MEDIAN){
       i.v <- as.numeric(index[, index.var])
       t.v <- as.numeric(target[[target.var]])
       if (!is.finite(t.v)) next()
+      excluded[!is.finite(i.v)] <- TRUE
       pld.inputs[, mv] <- ifelse(i.v < t.v, 1, 0)
       target.values[[mv]] <- 0.5
       n.adjustments <- n.adjustments + 1
@@ -179,6 +180,7 @@ createMAICInput <- function(index,
       i.v <- as.numeric(index[, index.var])
       t.v <- as.numeric(target[[target.var]])
       if (!is.finite(t.v)) next()
+      excluded[!is.finite(i.v)] <- TRUE
       pld.inputs[, mv] <- i.v
       target.values[[mv]] <- t.v
       n.adjustments <- n.adjustments + 1
@@ -186,6 +188,7 @@ createMAICInput <- function(index,
       i.v <- as.numeric(index[, index.var])
       t.v <- as.numeric(target[[target.var]])
       if (!is.finite(t.v)) next()
+      excluded[!is.finite(i.v)] <- TRUE
       if (t.v == 0){
         excluded[i.v == 1] <- TRUE
       } else if (t.v == 1){
@@ -204,6 +207,7 @@ createMAICInput <- function(index,
       t.v <- as.numeric(target[[target.var]])
       s.v <- as.numeric(target[[supp.var]])
       if (!is.finite(t.v) || ! is.finite(s.v)) next()
+      excluded[!is.finite(i.v)] <- TRUE
       pld.inputs[, mv] <- i.v * i.v
       target.values[[mv]] <- s.v * s.v + t.v * t.v
       n.adjustments <- n.adjustments + 1
@@ -216,6 +220,7 @@ createMAICInput <- function(index,
       t.v <- as.numeric(target[[target.var]])
       s.v <- as.numeric(target[[supp.var]])
       if (!is.finite(t.v) || ! is.finite(s.v)) next()
+      excluded[!is.finite(i.v)] <- TRUE
       pld.inputs[, mv] <- i.v * i.v
       target.values[[mv]] <- s.v * s.v + t.v
       n.adjustments <- n.adjustments + 1
@@ -226,6 +231,7 @@ createMAICInput <- function(index,
       i.v <- as.numeric(index[, index.var])
       t.v <- as.numeric(target[[target.var]])
       if (!is.finite(t.v)) next()
+      excluded[!is.finite(i.v)] <- TRUE
       pld.inputs[, mv] <- ifelse(i.v < t.v, 1, 0)
       target.values[[mv]] <- d
       n.adjustments <- n.adjustments + 1
@@ -432,25 +438,25 @@ reportCovariates <- function(index,
       t.v <- as.numeric(target[[target.var]])
       raw.value[[mv]] <- max(i.v, na.rm=TRUE)
       target.value[[mv]] <- t.v
-      adjusted.value[[mv]] <- max(i.v * ifelse(weights > 0, 1, 0))
+      adjusted.value[[mv]] <- max(i.v * ifelse(weights > 0, 1, 0), na.rm = TRUE)
     } else if (match.type == STR.MEDIAN){
       i.v <- as.numeric(index[, index.var])
       t.v <- as.numeric(target[[target.var]])
       raw.value[[mv]] <- median(i.v, na.rm = TRUE)
       target.value[[mv]] <- t.v
-      adjusted.value[[mv]] <- matrixStats::weightedMedian(i.v, weights)
+      adjusted.value[[mv]] <- matrixStats::weightedMedian(i.v, weights, na.rm = TRUE)
     } else if (match.type == STR.MEAN){
       i.v <- as.numeric(index[, index.var])
       t.v <- as.numeric(target[[target.var]])
       raw.value[[mv]] <- mean(i.v, na.rm = TRUE)
       target.value[[mv]] <- t.v
-      adjusted.value[[mv]] <- sum(i.v * weights) / sum(weights)
+      adjusted.value[[mv]] <- sum(i.v * weights, na.rm = TRUE) / sum(weights)
     } else if (match.type == STR.PROPORTION){
       i.v <- as.numeric(index[, index.var])
       t.v <- as.numeric(target[[target.var]])
       raw.value[[mv]] <- mean(i.v, na.rm = TRUE)
       target.value[[mv]] <- t.v
-      adjusted.value[[mv]] <- sum(i.v * weights) / sum(weights)
+      adjusted.value[[mv]] <- sum(i.v * weights, na.rm = TRUE) / sum(weights)
     } else if (match.type == STR.STANDARD.DEVIATION){
       i.v <- as.numeric(index[, index.var])
       t.v <- as.numeric(target[[target.var]])
