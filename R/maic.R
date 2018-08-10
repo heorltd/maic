@@ -30,13 +30,14 @@
 # -----------------------------------------------------------------------------
 ###############################################################################
 
-#' @importFrom stats optim median sd var quantile
+#' @importFrom stats optim median sd var quantile chisq.test pf prop.test t.test
 
 STR.MATCH.ID <- "match.id"
 STR.TARGET.VARIABLE <- "target.variable"
 STR.INDEX.VARIABLE <- "index.variable"
 STR.MATCH.TYPE <- "match.type"
 STR.SUPPLEMENTARY.VARIABLE <- "supplementary.target.variable"
+STR.SAMPLE.SIZE <- "sample.size.variable"
 STR.MINIMUM <- "min"
 STR.MAXIMUM <- "max"
 STR.MEDIAN <- "median"
@@ -95,8 +96,14 @@ PTN.QUANTILE <- paste0(STR.QUANTILE, "\\.(d+)")
 #'                                    values list that provides e.g. the mean
 #'                                    for sd and var matching.
 #'  }
-#' It is possible to use these match types to match on other variables, e.g.
-#' variance, by pre-processing the input correctly.
+#'  and, for estimating some p-values on difference (e.g. in proportion)
+#'  \itemize{
+#'  \item "sample.size.variable" - The name of the variable in the target
+#'                                 values list that provides the number of
+#'                                 subjects in the sample. Only for reporting.
+#'  }
+#' It is possible to use these match types to match on other variables by 
+#' pre-processing the input correctly.
 #' 
 #' Finally, the \code{matching.variables} is a list or character vector containing
 #' \code{match.id}s to be acted upon in this MAIC.
@@ -409,6 +416,11 @@ reportCovariates <- function(index,
   raw.value <- list()
   target.value <- list()
   adjusted.value <- list()
+  unweighted.p.value <- list()
+  weighted.p.value <- list()
+  
+  ess <- sum(weights)^2 / sum(weights^2)
+  weights <- (weights/sum(weights)) * ess
   
   for (mv in matching.variables){
     if (!(mv %in% rownames(dictionary))){
@@ -430,54 +442,155 @@ reportCovariates <- function(index,
     if (match.type == STR.MINIMUM){
       i.v <- as.numeric(index[, index.var])
       t.v <- as.numeric(target[[target.var]])
-      raw.value[[mv]] <- min(i.v, na.rm=TRUE)
-      target.value[[mv]] <- t.v
-      adjusted.value[[mv]] <- min(i.v * ifelse(weights > 0, 1, NA), na.rm = TRUE)
+      raw.value[mv] <- min(i.v, na.rm=TRUE)
+      target.value[mv] <- t.v
+      adjusted.value[mv] <- min(i.v * ifelse(weights > 0, 1, NA), na.rm = TRUE)
+      unweighted.p.value[mv] <- NA
+      weighted.p.value[mv] <- NA
     } else if (match.type == STR.MAXIMUM){
       i.v <- as.numeric(index[, index.var])
       t.v <- as.numeric(target[[target.var]])
-      raw.value[[mv]] <- max(i.v, na.rm=TRUE)
-      target.value[[mv]] <- t.v
-      adjusted.value[[mv]] <- max(i.v * ifelse(weights > 0, 1, 0), na.rm = TRUE)
+      raw.value[mv] <- max(i.v, na.rm=TRUE)
+      target.value[mv] <- t.v
+      adjusted.value[mv] <- max(i.v * ifelse(weights > 0, 1, 0), na.rm = TRUE)
+      unweighted.p.value[mv] <- NA
+      weighted.p.value[mv] <- NA
     } else if (match.type == STR.MEDIAN){
       i.v <- as.numeric(index[, index.var])
       t.v <- as.numeric(target[[target.var]])
-      raw.value[[mv]] <- median(i.v, na.rm = TRUE)
-      target.value[[mv]] <- t.v
-      adjusted.value[[mv]] <- matrixStats::weightedMedian(i.v, weights, na.rm = TRUE)
+      raw.value[mv] <- median(i.v, na.rm = TRUE)
+      target.value[mv] <- t.v
+      adjusted.value[mv] <- matrixStats::weightedMedian(i.v, weights, na.rm = TRUE)
+      # To test a difference in medians by the Mood's median test,
+      # we need to form a combined median. We cannot do this with
+      # summary data
+      unweighted.p.value[mv] <- NA
+      weighted.p.value[mv] <- NA
     } else if (match.type == STR.MEAN){
       i.v <- as.numeric(index[, index.var])
       t.v <- as.numeric(target[[target.var]])
-      raw.value[[mv]] <- mean(i.v, na.rm = TRUE)
-      target.value[[mv]] <- t.v
-      adjusted.value[[mv]] <- sum(i.v * weights, na.rm = TRUE) / sum(weights)
+      raw.value[mv] <- mean(i.v, na.rm = TRUE)
+      target.value[mv] <- t.v
+      adjusted.value[mv] <- sum(i.v * weights, na.rm = TRUE) / sum(weights)
+      
+      # Caution - these are one-sample tests as cannot use
+      # information about comparator sampling distribution
+      unwt.tst <- t.test(i.v, mu = t.v)
+      unweighted.p.value[mv] <- unwt.tst$p.value
+      
+      wt.tst <- weights::wtd.t.test(i.v, y = t.v, weight = weights,
+                                    bootse = TRUE, bootp = TRUE)
+      weighted.p.value[mv] <- wt.tst$coefficients["p.value"]
     } else if (match.type == STR.PROPORTION){
       i.v <- as.numeric(index[, index.var])
       t.v <- as.numeric(target[[target.var]])
-      raw.value[[mv]] <- mean(i.v, na.rm = TRUE)
-      target.value[[mv]] <- t.v
-      adjusted.value[[mv]] <- sum(i.v * weights, na.rm = TRUE) / sum(weights)
+      raw.value[mv] <- mean(i.v, na.rm = TRUE)
+      target.value[mv] <- t.v
+      adjusted.value[mv] <- sum(i.v * weights, na.rm = TRUE) / sum(weights)
+      
+      if (STR.SAMPLE.SIZE %in% colnames(dictionary) &&
+          !is.na(dictionary[mv, STR.SAMPLE.SIZE]) &&
+          !(as.character(dictionary[mv, STR.SAMPLE.SIZE]) == "")){
+        n <- as.integer(target[[as.character(dictionary[mv, STR.SAMPLE.SIZE])]])
+        unwt.tst <- prop.test(matrix(c(sum(i.v, na.rm = TRUE), length(i.v) - sum(i.v, na.rm = TRUE),
+                                       as.integer(t.v * n), as.integer(n *(1-t.v))),
+                                ncol = 2, byrow = TRUE))
+        unweighted.p.value[mv] <- unwt.tst$p.value
+        
+        wt.tst <- chisq.test(matrix(c(sum(i.v * weights, na.rm = TRUE), ess,
+                                      as.integer(t.v * n), as.integer(n *(1-t.v))),
+                                    ncol = 2, byrow = TRUE), 
+                             simulate.p.value = TRUE)
+        weighted.p.values[mv] <- wt.tst$p.value
+      } else {
+        # One-sample test. CAUTION!
+        warning(paste("One-sample test for variable", mv))
+        unwt.tst <- prop.test(sum(i.v, na.rm = TRUE), 
+                             length(i.v),
+                             t.v)
+        unweighted.p.value[mv] <- unwt.tst$p.value
+        
+        wt.tst <- prop.test(sum(i.v * weights, na.rm = TRUE),
+                            sum(weights),
+                            t.v)
+        weighted.p.value[mv] <- wt.tst$p.value
+      }
     } else if (match.type == STR.STANDARD.DEVIATION){
       i.v <- as.numeric(index[, index.var])
       t.v <- as.numeric(target[[target.var]])
-      raw.value[[mv]] <- sd(i.v, na.rm = TRUE)
-      target.value[[mv]] <- t.v
-      adjusted.value[[mv]] <- sqrt(Hmisc::wtd.var(i.v, weights, na.rm = TRUE))
+      raw.value[mv] <- sd(i.v, na.rm = TRUE)
+      target.value[mv] <- t.v
+      adjusted.value[mv] <- sqrt(Hmisc::wtd.var(i.v, weights, na.rm = TRUE))
+      
+      # Test difference in variances using F test. Caution - requires Normality
+      if (STR.SAMPLE.SIZE %in% colnames(dictionary) &&
+          !is.na(dictionary[mv, STR.SAMPLE.SIZE]) &&
+          !(as.character(dictionary[mv, STR.SAMPLE.SIZE]) == "")){
+        n <- as.integer(target[[as.character(dictionary[mv, STR.SAMPLE.SIZE])]])
+        
+        unweighted.p.value[mv] <- stats::pf(var(i.v, na.rm = TRUE) / (t.v ^ 2),
+                                 length(i.v),
+                                 n) * 2
+        
+        weighted.p.value[mv] <- stats::pf(Hmisc::wtd.var(i.v, weights, na.rm = TRUE) / (t.v ^ 2),
+                                   ess,
+                                   n) * 2
+      } else {
+        # One-sample test. CAUTION!
+        warning(paste("One-sample test for variable", mv))
+        unweighted.p.value[mv] <- stats::pf(var(i.v, na.rm = TRUE) / (t.v ^ 2),
+                                     length(i.v),
+                                     Inf) * 2
+        
+        weighted.p.value[mv] <- stats::pf(Hmisc::wtd.var(i.v, weights, na.rm = TRUE) / (t.v ^ 2),
+                                   ess,
+                                   Inf) * 2
+      }
     } else if (match.type == STR.VARIANCE){
       i.v <- as.numeric(index[, index.var])
       t.v <- as.numeric(target[[target.var]])
-      raw.value[[mv]] <- var(i.v, na.rm = TRUE)
-      target.value[[mv]] <- t.v
-      adjusted.value[[mv]] <- Hmisc::wtd.var(i.v, weights, na.rm = TRUE)
+      raw.value[mv] <- var(i.v, na.rm = TRUE)
+      target.value[mv] <- t.v
+      adjusted.value[mv] <- Hmisc::wtd.var(i.v, weights, na.rm = TRUE)
+      
+      # Test difference in variances using F test. Caution - requires Normality
+      if (STR.SAMPLE.SIZE %in% colnames(dictionary) &&
+          !is.na(dictionary[mv, STR.SAMPLE.SIZE]) &&
+          !(as.character(dictionary[mv, STR.SAMPLE.SIZE]) == "")){
+        n <- as.integer(target[[as.character(dictionary[mv, STR.SAMPLE.SIZE])]])
+        
+        unweighted.p.value[mv] <- stats::pf(var(i.v, na.rm = TRUE) / t.v,
+                                     length(i.v),
+                                     n) * 2
+        
+        weighted.p.value[mv] <- stats::pf(Hmisc::wtd.var(i.v, weights, na.rm = TRUE) / t.v,
+                                   ess,
+                                   n) * 2
+      } else {
+        # One-sample test. CAUTION!
+        warning(paste("One-sample test for variable", mv))
+        unweighted.p.value[mv] <- stats::pf(var(i.v, na.rm = TRUE) / t.v,
+                                     length(i.v),
+                                     Inf) * 2
+        
+        weighted.p.value[mv] <- stats::pf(Hmisc::wtd.var(i.v, weights, na.rm = TRUE) / t.v,
+                                   ess,
+                                   Inf) * 2
+      }
     } else if (grepl(PTN.QUANTILE, match.type)){
       mtch <- regexec(PTN.QUANTILE, match.type)
       v1 <- mtch[[1]][1]
       d <- as.numeric(substr(match.type,v1[2],(v1[2] + attr(v1, "match.length")[2] - 1)))
       i.v <- as.numeric(index[, index.var])
       t.v <- as.numeric(target[[target.var]])
-      raw.value[[mv]] <- quantile(i.v, d, na.rm = TRUE)
-      target.value[[mv]] <- t.v
-      adjusted.value[[mv]] <- Hmisc::wtd.quantile(i.v, weights, normwt = TRUE, na.rm = TRUE)
+      raw.value[mv] <- quantile(i.v, d, na.rm = TRUE)
+      target.value[mv] <- t.v
+      adjusted.value[mv] <- Hmisc::wtd.quantile(i.v, weights, normwt = TRUE, na.rm = TRUE)
+      
+      # Similar to median by Mood's test, we need to form a combined quantile. 
+      # We cannot do this with summary data
+      unweighted.p.value[mv] <- NA
+      weighted.p.value[mv] <- NA
     } else {
       stop (paste(match.type, "is an unrecognised match type"))
     }
@@ -486,7 +599,9 @@ reportCovariates <- function(index,
   res <- list(
     "raw.values" = raw.value,
     "target.values" = target.value,
-    "adjusted.values" = adjusted.value
+    "adjusted.values" = adjusted.value,
+    "unweighted.p.values" = unweighted.p.value,
+    "weighted.p.values" = weighted.p.value
   )
   
   class(res) <- "MaicCovariates"

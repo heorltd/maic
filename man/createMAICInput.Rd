@@ -67,8 +67,14 @@ The \code{dictionary} is a data frame containing at least 4 vectors:
                                    values list that provides e.g. the mean
                                    for sd and var matching.
  }
-It is possible to use these match types to match on other variables, e.g.
-variance, by pre-processing the input correctly.
+ and, for estimating some p-values on difference (e.g. in proportion)
+ \itemize{
+ \item "sample.size.variable" - The name of the variable in the target
+                                values list that provides the number of
+                                subjects in the sample. Only for reporting.
+ }
+It is possible to use these match types to match on other variables by 
+pre-processing the input correctly.
 
 Finally, the \code{matching.variables} is a list or character vector containing
 \code{match.id}s to be acted upon in this MAIC.

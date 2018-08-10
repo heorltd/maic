@@ -1,13 +1,14 @@
 Package: maic
 Type: Package
 Title: Matching-Adjusted Indirect Comparison
-Version: 0.0.3.9000
-Date: 2017-11-02
+Version: 0.0.4.9000
+Date: 2018-11-02
 Author: Rob Young
 Maintainer: Rob Young <rob.young@heor.co.uk>
 Description: Generalised implementation of the NICE DSU MAIC methodology.
 License: GPL-3
 Imports:
   Hmisc,
-  matrixStats
+  matrixStats,
+  weights
 RoxygenNote: 6.0.1
