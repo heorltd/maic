@@ -269,6 +269,7 @@ createMAICInput <- function(index,
     for (nm in nms){
       if (is.null(input.df)){
         input.df <- data.frame(pld.inputs[, nm] - target.values[[nm]])
+        colnames(input.df) <- nm
       } else {
         input.df[, nm] <- pld.inputs[, nm] - target.values[[nm]]
       }

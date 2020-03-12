@@ -4,9 +4,15 @@
 \alias{maicMatching}
 \title{calculate MAIC weights}
 \usage{
-maicMatching(index, target, dictionary, matching.variables,
-  reporting.variables = NULL, check.residuals = TRUE,
-  residual.warning.level = 0.001)
+maicMatching(
+  index,
+  target,
+  dictionary,
+  matching.variables,
+  reporting.variables = NULL,
+  check.residuals = TRUE,
+  residual.warning.level = 0.001
+)
 }
 \arguments{
 \item{index}{A matrix or data.frame containing patient-level data}
