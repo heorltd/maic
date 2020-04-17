@@ -3,3 +3,6 @@
 ^README\.Rmd$
 ^NEWS\.Rmd$
 ^cran-comments\.md$
+^\.gitignore$
+^\.Rproj.user$
+^\.git$
