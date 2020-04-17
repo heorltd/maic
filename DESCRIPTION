@@ -5,7 +5,9 @@ Version: 0.1.1
 Date: 2020-04-16
 Author: Rob Young
 Maintainer: Rob Young <rob.young@heor.co.uk>
-Description: Generalised implementation of the NICE DSU MAIC methodology.
+Description: Generalised workflow for generation of MAIC weights, 
+  with reference to the UK National Institute for Health and Care 
+  Excellence Decision Support Unit's example.
 License: GPL-3
 Imports:
   Hmisc,
