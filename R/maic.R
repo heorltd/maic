@@ -113,141 +113,161 @@ PTN.QUANTILE <- paste0(STR.QUANTILE, "\\.(\\d+)")
 #' @param dictionary A data frame containing the columns "match.id",
 #'                   "target.variable", "index.variable" and "match.type"
 #' @param matching.variables A character vector indicating the match.id to use
+#' @param x Return subject level inputs?
 #' @return An object of class \code{maic.input}
 #' @example R/examples/maic.example.R
 #' @export
 createMAICInput <- function(index,
                       target,
                       dictionary,
-                      matching.variables){
-  ##### Sanity checking #####
-  # Check vital columns in dictionary
-  colnames(dictionary) <- tolower(colnames(dictionary))
-  if (!all(c(STR.MATCH.ID,
-             STR.TARGET.VARIABLE,
-             STR.INDEX.VARIABLE,
-             STR.MATCH.TYPE) %in% colnames(dictionary))){
-    stop (paste("Dictionary must contain variables with the names", 
-                paste(c(STR.MATCH.ID,
-                        STR.TARGET.VARIABLE,
-                        STR.INDEX.VARIABLE,
-                        STR.MATCH.TYPE), collapse= ", ")))
-  }
-  rownames(dictionary) <- dictionary[, STR.MATCH.ID]
+                      matching.variables,
+                      x = FALSE){
+  index <- as.data.frame(index)
   
-  if (typeof(matching.variables) == "list"){
-    matching.variables <- as.character(unlist(matching.variables))
-  }
   
-  ##### Start collating the data #####
+  # Initialise variables required for return object
   target.values <- list()
   excluded <- rep(FALSE, nrow(index))
   pld.inputs <- data.frame(dummy = rep(NA, nrow(index)))
   n.adjustments <- 0
   
-  
-  for (mv in matching.variables){
-    if (!(mv %in% rownames(dictionary))){
-      stop(paste(mv, "not specified in dictionary"))
+  if (length(matching.variables) > 0){
+    ##### Sanity checking #####
+    # Check vital columns in dictionary
+    colnames(dictionary) <- tolower(colnames(dictionary))
+    if (!all(c(STR.MATCH.ID,
+               STR.TARGET.VARIABLE,
+               STR.INDEX.VARIABLE,
+               STR.MATCH.TYPE) %in% colnames(dictionary))){
+      stop (paste("Dictionary must contain variables with the names", 
+                  paste(c(STR.MATCH.ID,
+                          STR.TARGET.VARIABLE,
+                          STR.INDEX.VARIABLE,
+                          STR.MATCH.TYPE), collapse= ", ")))
     }
-    target.var <- dictionary[mv, STR.TARGET.VARIABLE]
-    index.var <- dictionary[mv, STR.INDEX.VARIABLE]
-    match.type <- dictionary[mv, STR.MATCH.TYPE]
+    rownames(dictionary) <- dictionary[, STR.MATCH.ID]
     
-    if (!(target.var %in% names(target))){
-      stop(paste(target.var, "not in target row"))
+    if (typeof(matching.variables) == "list"){
+      matching.variables <- as.character(unlist(matching.variables))
     }
     
-    if (!(index.var %in% colnames(index))){
-      stop(paste(index.var, "not in index data"))
-    }
-    
-    # Could do a switch here, but I don't trust side effects in R
-    if (match.type == STR.MINIMUM){
-      i.v <- as.numeric(index[, index.var])
-      t.v <- as.numeric(target[[target.var]])
-      if (!is.finite(t.v)) next()
-      excluded[!is.finite(i.v) | i.v < t.v] <- TRUE
-      n.adjustments <- n.adjustments + 1
-    } else if (match.type == STR.MAXIMUM){
-      i.v <- as.numeric(index[, index.var])
-      t.v <- as.numeric(target[[target.var]])
-      if (!is.finite(t.v)) next()
-      excluded[!is.finite(i.v) | i.v > t.v] <- TRUE
-      n.adjustments <- n.adjustments + 1
-    } else if (match.type == STR.MEDIAN){
-      i.v <- as.numeric(index[, index.var])
-      t.v <- as.numeric(target[[target.var]])
-      if (!is.finite(t.v)) next()
-      excluded[!is.finite(i.v)] <- TRUE
-      pld.inputs[, mv] <- ifelse(i.v < t.v, 1, 0)
-      target.values[[mv]] <- 0.5
-      n.adjustments <- n.adjustments + 1
-    } else if (match.type == STR.MEAN){
-      i.v <- as.numeric(index[, index.var])
-      t.v <- as.numeric(target[[target.var]])
-      if (!is.finite(t.v)) next()
-      excluded[!is.finite(i.v)] <- TRUE
-      pld.inputs[, mv] <- i.v
-      target.values[[mv]] <- t.v
-      n.adjustments <- n.adjustments + 1
-    } else if (match.type == STR.PROPORTION){
-      i.v <- as.numeric(index[, index.var])
-      t.v <- as.numeric(target[[target.var]])
-      if (!is.finite(t.v)) next()
-      excluded[!is.finite(i.v)] <- TRUE
-      if (t.v == 0){
-        excluded[i.v == 1] <- TRUE
-      } else if (t.v == 1){
-        excluded[i.v == 0] <- TRUE
-      } else {
+    ##### Start collating the data #####
+    for (mv in matching.variables){
+      if (!(mv %in% rownames(dictionary))){
+        stop(paste(mv, "not specified in dictionary"))
+      }
+      target.var <- dictionary[mv, STR.TARGET.VARIABLE]
+      index.var <- dictionary[mv, STR.INDEX.VARIABLE]
+      match.type <- dictionary[mv, STR.MATCH.TYPE]
+      
+      if (!(target.var %in% names(target))){
+        stop(paste(target.var, "not in target row"))
+      }
+      
+      if (!(index.var %in% colnames(index))){
+        stop(paste(index.var, "not in index data"))
+      }
+      
+      # Could move to a switch form in future
+      if (match.type == STR.MINIMUM){
+        i.v <- as.numeric(index[, index.var])
+        t.v <- as.numeric(target[[target.var]])
+        if (!is.finite(t.v)) next()
+        excluded[!is.finite(i.v) | i.v < t.v] <- TRUE
+        n.adjustments <- n.adjustments + 1
+      } else if (match.type == STR.MAXIMUM){
+        i.v <- as.numeric(index[, index.var])
+        t.v <- as.numeric(target[[target.var]])
+        if (!is.finite(t.v)) next()
+        excluded[!is.finite(i.v) | i.v > t.v] <- TRUE
+        n.adjustments <- n.adjustments + 1
+      } else if (match.type == STR.MEDIAN){
+        i.v <- as.numeric(index[, index.var])
+        t.v <- as.numeric(target[[target.var]])
+        if (!is.finite(t.v)) next()
+        excluded[!is.finite(i.v)] <- TRUE
+        pld.inputs[, mv] <- ifelse(i.v < t.v, 1, 0)
+        target.values[[mv]] <- 0.5
+        # Check if we have any values within bounds - else fitting will fail
+        if (!all(excluded) && all(pld.inputs[!excluded, mv] > 0)){
+          stop("Cannot match median for ", mv, ", target is above maximum")
+        } else if (!all(excluded) && all(pld.inputs[!excluded, mv] < 1)){
+          stop("Cannot match median for ", mv, ", target is below minimum")
+        }
+        n.adjustments <- n.adjustments + 1
+      } else if (match.type == STR.MEAN){
+        i.v <- as.numeric(index[, index.var])
+        t.v <- as.numeric(target[[target.var]])
+        if (!is.finite(t.v)) next()
+        excluded[!is.finite(i.v)] <- TRUE
         pld.inputs[, mv] <- i.v
         target.values[[mv]] <- t.v
-      }
-      n.adjustments <- n.adjustments + 1
-    } else if (match.type == STR.STANDARD.DEVIATION){
-      if (!STR.SUPPLEMENTARY.VARIABLE %in% colnames(dictionary)){
+        n.adjustments <- n.adjustments + 1
+      } else if (match.type == STR.PROPORTION){
+        i.v <- as.numeric(index[, index.var])
+        t.v <- as.numeric(target[[target.var]])
+        if (!is.finite(t.v)) next()
+        excluded[!is.finite(i.v)] <- TRUE
+        if (t.v == 0){
+          excluded[i.v == 1] <- TRUE
+        } else if (t.v == 1){
+          excluded[i.v == 0] <- TRUE
+        } else {
+          pld.inputs[, mv] <- i.v
+          target.values[[mv]] <- t.v
+        }
+        n.adjustments <- n.adjustments + 1
+      } else if (match.type == STR.STANDARD.DEVIATION){
+        if (!STR.SUPPLEMENTARY.VARIABLE %in% colnames(dictionary)){
           stop(paste(STR.SUPPLEMENTARY.VARIABLE, "column must be present in dictionary to use", STR.STANDARD.DEVIATION))
+        }
+        supp.var <- dictionary[mv, STR.SUPPLEMENTARY.VARIABLE]
+        i.v <- as.numeric(index[, index.var])
+        t.v <- as.numeric(target[[target.var]])
+        s.v <- as.numeric(target[[supp.var]])
+        if (!is.finite(t.v) || ! is.finite(s.v)) next()
+        excluded[!is.finite(i.v)] <- TRUE
+        pld.inputs[, mv] <- i.v * i.v
+        target.values[[mv]] <- s.v * s.v + t.v * t.v
+        n.adjustments <- n.adjustments + 1
+      } else if (match.type == STR.VARIANCE){
+        if (!STR.SUPPLEMENTARY.VARIABLE %in% colnames(dictionary)){
+          stop(paste(STR.SUPPLEMENTARY.VARIABLE, "column must be present in dictionary to use", STR.VARIANCE))
+        }
+        supp.var <- dictionary[mv, STR.SUPPLEMENTARY.VARIABLE]
+        i.v <- as.numeric(index[, index.var])
+        t.v <- as.numeric(target[[target.var]])
+        s.v <- as.numeric(target[[supp.var]])
+        if (!is.finite(t.v) || ! is.finite(s.v)) next()
+        excluded[!is.finite(i.v)] <- TRUE
+        pld.inputs[, mv] <- i.v * i.v
+        target.values[[mv]] <- s.v * s.v + t.v
+        n.adjustments <- n.adjustments + 1
+      } else if (grepl(PTN.QUANTILE, match.type)){
+        mtch <- regexec(PTN.QUANTILE, match.type)
+        v1 <- mtch[[1]]
+        d <- as.numeric(substr(match.type,v1[2],(v1[2] + attr(v1, "match.length")[2] - 1)))
+        i.v <- as.numeric(index[, index.var])
+        t.v <- as.numeric(target[[target.var]])
+        if (!is.finite(t.v)) next()
+        excluded[!is.finite(i.v)] <- TRUE
+        pld.inputs[, mv] <- ifelse(i.v < t.v, 1, 0)
+        target.values[[mv]] <- d / 10^(floor(log10(d)+1))
+        # Check if we have any values within bounds - else fitting will fail
+        if (!all(excluded) && (target.values[[mv]] > 0) && all(pld.inputs[!excluded, mv] > 0)){
+          stop("Cannot match quantile for ", mv, ", target is above maximum")
+        } else if (!all(excluded) && (target.values[[mv]] < 1) && all(pld.inputs[!excluded, mv] < 1)){
+          stop("Cannot match quantile for ", mv, ", target is below minimum")
+        }
+        n.adjustments <- n.adjustments + 1
+      } else {
+        stop (paste(match.type, "is an unrecognised match type"))
       }
-      supp.var <- dictionary[mv, STR.SUPPLEMENTARY.VARIABLE]
-      i.v <- as.numeric(index[, index.var])
-      t.v <- as.numeric(target[[target.var]])
-      s.v <- as.numeric(target[[supp.var]])
-      if (!is.finite(t.v) || ! is.finite(s.v)) next()
-      excluded[!is.finite(i.v)] <- TRUE
-      pld.inputs[, mv] <- i.v * i.v
-      target.values[[mv]] <- s.v * s.v + t.v * t.v
-      n.adjustments <- n.adjustments + 1
-    } else if (match.type == STR.VARIANCE){
-      if (!STR.SUPPLEMENTARY.VARIABLE %in% colnames(dictionary)){
-        stop(paste(STR.SUPPLEMENTARY.VARIABLE, "column must be present in dictionary to use", STR.VARIANCE))
-      }
-      supp.var <- dictionary[mv, STR.SUPPLEMENTARY.VARIABLE]
-      i.v <- as.numeric(index[, index.var])
-      t.v <- as.numeric(target[[target.var]])
-      s.v <- as.numeric(target[[supp.var]])
-      if (!is.finite(t.v) || ! is.finite(s.v)) next()
-      excluded[!is.finite(i.v)] <- TRUE
-      pld.inputs[, mv] <- i.v * i.v
-      target.values[[mv]] <- s.v * s.v + t.v
-      n.adjustments <- n.adjustments + 1
-    } else if (grepl(PTN.QUANTILE, match.type)){
-      mtch <- regexec(PTN.QUANTILE, match.type)
-      v1 <- mtch[[1]]
-      d <- as.numeric(substr(match.type,v1[2],(v1[2] + attr(v1, "match.length")[2] - 1)))
-      i.v <- as.numeric(index[, index.var])
-      t.v <- as.numeric(target[[target.var]])
-      if (!is.finite(t.v)) next()
-      excluded[!is.finite(i.v)] <- TRUE
-      pld.inputs[, mv] <- ifelse(i.v < t.v, 1, 0)
-      target.values[[mv]] <- d / 10^(floor(log10(d)+1))
-      n.adjustments <- n.adjustments + 1
-    } else {
-      stop (paste(match.type, "is an unrecognised match type"))
     }
+    
+    pld.inputs <- pld.inputs[, -which(names(pld.inputs) %in% c("dummy")), drop = FALSE]
   }
   
-  pld.inputs <- pld.inputs[, -which(names(pld.inputs) %in% c("dummy")), drop = FALSE]
   
   n.matches <- length (target.values)
   n.excluded <- sum(excluded)
@@ -256,10 +276,15 @@ createMAICInput <- function(index,
   res[["n.adjustments"]] <- n.adjustments
   res[["n.matches"]] <- n.matches
   res[["excluded"]] <- excluded
+  res[["target.values"]] <- target.values
+  if (x){
+    res[["x"]] <- pld.inputs
+  }
   
   if (n.matches == 0 || n.excluded == nrow(pld.inputs)){
     # Can't go any further making the matrix, so finish constructing the return object
-    res[["input.matrix"]] <- matrix()
+    res[["input.matrix"]] <- matrix(nrow = sum(!excluded),
+                                    ncol = 0)
   } else {
     pld.inputs <- pld.inputs[!excluded, , drop = FALSE]
     
@@ -285,28 +310,25 @@ createMAICInput <- function(index,
   return(res)
 }
 
-# Constructor function for maic.input
-#' Constructor for a maic.input object
-#' 
-#' @param n.adjustments Numeric, number of variables that have had any
-#'                      comparison performed
-#' @param n.matches Numeric, number of matching variables
-#' @param excluded Logical vector; which index rows have been excluded from 
-#'                 matching
-#' @param input.matrix Numeric matrix, centred MAIC input matrix
-#' @return An object of class \code{maic.input}
+# Methods for the MaicWeights
 #' @export
-MaicInput <- function(n.adjustments,
-                       n.matches,
-                       excluded,
-                       input.matrix){
-  structure(list("n.adjustments" = n.adjustments,
-                 "n.matches" = n.matches,
-                 "excluded" = excluded,
-                 "input.matrix" = input.matrix),
-            class = "maic.input")
+print.MaicWeight <- function(x, ...){
+  print(as.numeric(x))
 }
-  
+
+#' @export
+plot.MaicWeight <- function(x, ...){
+  CL <- as.list(match.call(expand.dots = TRUE))[-1]
+  CL$plot <- TRUE
+  #CL$x <- as.numeric(x)
+  if (is.null(CL$main)){
+    CL$main <- "Histogram of weights"
+  }
+  if (is.null(CL$xlab)){
+    CL$xlab <- "Subject weight"
+  }
+  do.call(graphics::hist, CL)
+}
 
 # Generic function for maic weighting
 #' Calculate MAIC weights
@@ -316,41 +338,96 @@ MaicInput <- function(n.adjustments,
 #' matrix or a \code{maic.input} object
 #' 
 #' @param x Either a \code{maic.input} object or a MAIC input matrix
+#' @param opt return the optim object as attribute
+#' @param keep.x return the input matrix as an attribute
+#' @param ... Optional arguments to \code{\link{optim}}
 #' @return A numeric vector of weights corresponding to the rows in the input
 #'         matrix
 #' @example R/examples/maic.example.R
 #' @export
-maicWeight <- function(x){
+maicWeight <- function(x,
+                       opt = TRUE,
+                       keep.x = TRUE,
+                       ...){
   UseMethod("maicWeight", x)
 }
 
-#' Calculate MAIC weights
-#' 
-#' This function calculates the weights to apply to records for 
-#' Matching-Adjusted Indirect Comparison (MAIC), from a \code{maic.input} 
-#' object
-#' 
-#' @param x A \code{maic.input} object
-#' @return A numeric vector of weights corresponding to the rows in the input
-#'         matrix
-#' @example R/examples/maic.example.R
 #' @export
-maicWeight.MaicInput <- function(x){
-  maicWeight.default(x[["input.matrix"]])
+maicWeight.MaicInput <- function(x,
+                                 opt = TRUE,
+                                 keep.x = TRUE,
+                                 ...){
+  if (x$n.matches == 0){
+    z <- ifelse(x$excluded, 0, 1)
+    if (opt) attr(z, "opt") <- NULL
+    if (keep.x){
+      attr(z, "x") <- x
+    }
+    attr(z, "ESS") <- sum(z)
+    class(z) <- "MaicWeight"
+    return(ifelse(x$excluded, 0, 1))
+  }
+  z <- rep(0, length(x$excluded))
+  if (keep.x){
+    attr(z, "x") <- x
+  }
+  class(z) <- "MaicWeight"
+  if (all(x$excluded)){
+    if (opt){
+      attr(z, "opt") <- NULL
+    }
+    attr(z, "ESS") <- 0
+    return(z)
+  }
+  wts <- maicWeight.default(x[["input.matrix"]],
+                            opt = opt,
+                            keep.x = FALSE,
+                            ...)
+  z[!x$excluded] <- as.numeric(wts)
+  if (opt){
+    attr(z, "opt") <- attr(wts, "opt")
+  }
+  attr(z, "ESS") <- sum(z)^2 / sum(z^2)
+  z
 }
 
-# The basic MAIC weighting code
-#' Calculate MAIC weights
-#' 
-#' This function calculates the weights to apply to records for 
-#' Matching-Adjusted Indirect Comparison (MAIC), from a raw input matrix
-#' 
-#' @param x A MAIC input matrix
-#' @return A numeric vector of weights corresponding to the rows in the input
-#'         matrix
-#' @example R/examples/maic.example.R
 #' @export
-maicWeight.default <- function(x){
+maicWeight.default <- function(x,
+                               opt = TRUE,
+                               keep.x = TRUE,
+                               ...){
+  # First, let us determine if it is going to be possible
+  # to optimise on this x
+  if (nrow(x) == 0){
+    wt <- numeric(0)
+    if (opt){
+      attr(wt, "opt") <- NULL
+    }
+    class(wt) <- "MaicWeight"
+    return(wt)
+  }
+  
+  if (ncol(x) == 0){
+    wt <- rep(1, nrow(x))
+    if (opt){
+      attr(wt, "opt") <- NULL
+    }
+    class(wt) <- "MaicWeight"
+    return(wt)
+  }
+  
+  for (cidx in seq_len(ncol(x))){
+    if (all(x[, cidx] < 0) ||
+        all(x[, cidx] > 0)){
+      wt <- rep(0, nrow(x))
+      if (opt){
+        attr(wt, "opt") <- NULL
+      }
+      class(wt) <- "MaicWeight"
+      return(wt)
+    }
+  }
+  
   # The maic functions, as per NICE DSU
   # Objective function
   objfn <- function(a1, X){
@@ -359,17 +436,38 @@ maicWeight.default <- function(x){
   
   # Gradient function
   gradfn <- function(a1,X){
-    colSums(sweep(X,1,exp(X %*% a1), "*"))
+    colSums(sweep(X, 1, exp(X %*% a1), "*"))
   }
   
-  opt1 <- optim(par=rep(0, ncol(x)),
-                fn=objfn,
-                gr=gradfn,
-                X=x,
-                method="BFGS")
+  optim.args <- list(...)
+  if (is.null(optim.args$method)){
+    optim.args$method <- "BFGS"
+  }
+  
+  optim.args <- c(optim.args,
+                  list(par = rep(0, ncol(x)),
+                       fn = objfn,
+                       gr = gradfn,
+                       X = x))
+  
+  opt1 <- do.call("optim", 
+                  optim.args)
+  
+  if (opt1$convergence != 0){
+    warning("Optimisation has not converged, optim convergence code ", opt1$convergence,
+            ". Please ensure you have sufficient overlapping observations",
+            "for the number of matches")
+  }
+  
   a1 <- opt1$par
   wt <- exp(x %*% a1)
   
+  if (opt){
+    attr(wt, "opt") <- opt1
+  }
+  
+  attr(wt, "ESS") <- sum(wt)^2 / sum(wt^2)
+  class(wt) <- "MaicWeight"
   return (wt)
 }
 
@@ -386,6 +484,10 @@ maicWeight.default <- function(x){
 #' @param matching.variables A character vector indicating the match.id to use
 #' @param weights A numeric vector with weights corresponding to the index 
 #'                data rows
+#' @param tidy A boolean - return as a data frame (otherwise list)
+#' @param var.method Estimator type passed through to \code{\link{wtd.var}}.
+#'                   Defaults to \code{ML}, as Bessel's correction not used in
+#'                   weights generation.
 #' @return An object of class \code{maic.covariates}
 #' @example R/examples/maic.example.R
 #' @export
@@ -393,7 +495,9 @@ reportCovariates <- function(index,
                              target,
                              dictionary,
                              matching.variables,
-                             weights){
+                             weights,
+                             tidy = TRUE,
+                             var.method = c("ML", "unbiased")){
   ##### Sanity checking #####
   # Check vital columns in dictionary
   colnames(dictionary) <- tolower(colnames(dictionary))
@@ -481,7 +585,7 @@ reportCovariates <- function(index,
         unweighted.p.value[mv] <- unwt.tst$p.value
         
         wt.tst <- weights::wtd.t.test(i.v, y = t.v, weight = weights,
-                                      bootse = TRUE, bootp = TRUE)
+                                      bootse = TRUE)
         weighted.p.value[mv] <- wt.tst$coefficients["p.value"]
       } else {
         unweighted.p.value[mv] <- NA
@@ -535,11 +639,13 @@ reportCovariates <- function(index,
         weighted.p.value[mv] <- NA
       }
     } else if (match.type == STR.STANDARD.DEVIATION){
+      if (missing(var.method)) var.method <- "ML"
       i.v <- as.numeric(index[, index.var])
       t.v <- as.numeric(target[[target.var]])
       raw.value[mv] <- sd(i.v, na.rm = TRUE)
       target.value[mv] <- t.v
-      adjusted.value[mv] <- sqrt(Hmisc::wtd.var(i.v, weights, na.rm = TRUE))
+      adjusted.value[mv] <- sqrt(Hmisc::wtd.var(i.v, weights, na.rm = TRUE,
+                                                method = var.method))
       
       if (is.finite(target.value[[mv]] && is.finite(raw.value[[mv]]))){
         # Test difference in variances using F test. Caution - requires Normality
@@ -548,34 +654,60 @@ reportCovariates <- function(index,
             !(as.character(dictionary[mv, STR.SAMPLE.SIZE]) == "")){
           n <- as.integer(target[[as.character(dictionary[mv, STR.SAMPLE.SIZE])]])
           
-          unweighted.p.value[mv] <- stats::pf(var(i.v, na.rm = TRUE) / (t.v ^ 2),
-                                              length(i.v),
-                                              n) * 2
+          ##### Unweighted test #####
+          # Copy of var.test
+          STATISTIC <- var(i.v, na.rm = TRUE) / (t.v ^ 2)
+          PVAL <- stats::pf(STATISTIC,
+                            length(i.v) - 1,
+                            n - 1)
+          # Use two-sided
+          PVAL <- 2 * min(PVAL, 1 - PVAL)
+          unweighted.p.value[mv] <- PVAL
           
-          weighted.p.value[mv] <- stats::pf(Hmisc::wtd.var(i.v, weights, na.rm = TRUE) / (t.v ^ 2),
-                                            ess,
-                                            n) * 2
+          ##### Weighted test #####
+          STATISTIC <- Hmisc::wtd.var(i.v, weights, na.rm = TRUE,
+                                      method = var.method) / (t.v ^ 2)
+          PVAL <- stats::pf(STATISTIC,
+                            ess - 1,
+                            n - 1)
+          # Use two-sided
+          PVAL <- 2 * min(PVAL, 1 - PVAL)
+          weighted.p.value[mv] <- PVAL
         } else {
           # One-sample test. CAUTION!
           warning(paste("One-sample test for variable", mv))
-          unweighted.p.value[mv] <- stats::pf(var(i.v, na.rm = TRUE) / (t.v ^ 2),
-                                              length(i.v),
-                                              Inf) * 2
+          ##### Unweighted test #####
+          # Copy of var.test
+          STATISTIC <- var(i.v, na.rm = TRUE) / (t.v ^ 2)
+          PVAL <- stats::pf(STATISTIC,
+                            length(i.v) - 1,
+                            Inf)
+          # Use two-sided
+          PVAL <- 2 * min(PVAL, 1 - PVAL)
+          unweighted.p.value[mv] <- PVAL
           
-          weighted.p.value[mv] <- stats::pf(Hmisc::wtd.var(i.v, weights, na.rm = TRUE) / (t.v ^ 2),
-                                            ess,
-                                            Inf) * 2
+          ##### Weighted test #####
+          STATISTIC <- Hmisc::wtd.var(i.v, weights, na.rm = TRUE,
+                                      method = var.method) / (t.v ^ 2)
+          PVAL <- stats::pf(STATISTIC,
+                            ess - 1,
+                            Inf)
+          # Use two-sided
+          PVAL <- 2 * min(PVAL, 1 - PVAL)
+          weighted.p.value[mv] <- PVAL
         }
       } else {
         unweighted.p.value[mv] <- NA
         weighted.p.value[mv] <- NA
       }
     } else if (match.type == STR.VARIANCE){
+      if (missing(var.method)) var.method <- "ML"
       i.v <- as.numeric(index[, index.var])
       t.v <- as.numeric(target[[target.var]])
       raw.value[mv] <- var(i.v, na.rm = TRUE)
       target.value[mv] <- t.v
-      adjusted.value[mv] <- Hmisc::wtd.var(i.v, weights, na.rm = TRUE)
+      adjusted.value[mv] <- Hmisc::wtd.var(i.v, weights, na.rm = TRUE,
+                                           method = var.method)
       
       if (is.finite(target.value[[mv]] && is.finite(raw.value[[mv]]))){
         # Test difference in variances using F test. Caution - requires Normality
@@ -584,23 +716,47 @@ reportCovariates <- function(index,
             !(as.character(dictionary[mv, STR.SAMPLE.SIZE]) == "")){
           n <- as.integer(target[[as.character(dictionary[mv, STR.SAMPLE.SIZE])]])
           
-          unweighted.p.value[mv] <- stats::pf(var(i.v, na.rm = TRUE) / t.v,
-                                              length(i.v),
-                                              n) * 2
+          ##### Unweighted test #####
+          # Copy of var.test
+          STATISTIC <- var(i.v, na.rm = TRUE) / t.v
+          PVAL <- stats::pf(STATISTIC,
+                            length(i.v) - 1,
+                            n - 1)
+          # Use two-sided
+          PVAL <- 2 * min(PVAL, 1 - PVAL)
+          unweighted.p.value[mv] <- PVAL
           
-          weighted.p.value[mv] <- stats::pf(Hmisc::wtd.var(i.v, weights, na.rm = TRUE) / t.v,
-                                            ess,
-                                            n) * 2
+          ##### Weighted test #####
+          STATISTIC <- Hmisc::wtd.var(i.v, weights, na.rm = TRUE,
+                                      method = var.method) / t.v
+          PVAL <- stats::pf(STATISTIC,
+                            ess - 1,
+                            n - 1)
+          # Use two-sided
+          PVAL <- 2 * min(PVAL, 1 - PVAL)
+          weighted.p.value[mv] <- PVAL
         } else {
           # One-sample test. CAUTION!
           warning(paste("One-sample test for variable", mv))
-          unweighted.p.value[mv] <- stats::pf(var(i.v, na.rm = TRUE) / t.v,
-                                              length(i.v),
-                                              Inf) * 2
+          ##### Unweighted test #####
+          # Copy of var.test
+          STATISTIC <- var(i.v, na.rm = TRUE) / t.v
+          PVAL <- stats::pf(STATISTIC,
+                            length(i.v) - 1,
+                            Inf)
+          # Use two-sided
+          PVAL <- 2 * min(PVAL, 1 - PVAL)
+          unweighted.p.value[mv] <- PVAL
           
-          weighted.p.value[mv] <- stats::pf(Hmisc::wtd.var(i.v, weights, na.rm = TRUE) / t.v,
-                                            ess,
-                                            Inf) * 2
+          ##### Weighted test #####
+          STATISTIC <- Hmisc::wtd.var(i.v, weights, na.rm = TRUE,
+                                      method = var.method) / t.v
+          PVAL <- stats::pf(STATISTIC,
+                            ess - 1,
+                            Inf)
+          # Use two-sided
+          PVAL <- 2 * min(PVAL, 1 - PVAL)
+          weighted.p.value[mv] <- PVAL
         }
       } else {
         unweighted.p.value[mv] <- NA
@@ -625,15 +781,32 @@ reportCovariates <- function(index,
     }
   }
     
-  res <- list(
-    "raw.values" = raw.value,
-    "target.values" = target.value,
-    "adjusted.values" = adjusted.value,
-    "unweighted.p.values" = unweighted.p.value,
-    "weighted.p.values" = weighted.p.value
-  )
+  if (tidy){
+    res <- data.frame(
+      "matching.variable" = names(raw.value),
+      "target.value" = as.numeric(target.value),
+      "unadjusted.value" = as.numeric(raw.value),
+      "unadjusted.delta" = as.numeric(raw.value) - as.numeric(target.value),
+      "unadjusted.p.value" = as.numeric(unweighted.p.value),
+      "adjusted.value" = as.numeric(adjusted.value),
+      "adjusted.delta" = as.numeric(adjusted.value) - as.numeric(target.value),
+      "adjusted.p.value" = as.numeric(weighted.p.value),
+      stringsAsFactors = FALSE,
+      row.names = names(raw.value)
+    )
+  } else {
+    res <- list(
+      "target.value" = target.value,
+      "unadjusted.value" = raw.value,
+      "unadjusted.delta" = as.numeric(raw.value) - as.numeric(target.value),
+      "unadjusted.p.value" = unweighted.p.value,
+      "adjusted.value" = adjusted.value,
+      "adjusted.delta" = as.numeric(adjusted.value) - as.numeric(target.value),
+      "adjusted.p.value" = weighted.p.value
+    )
+  }
   
-  class(res) <- "MaicCovariates"
+  class(res) <- c(class(res), "MaicAggregates")
   
   return(res)
 }
@@ -699,19 +872,16 @@ reportCovariates <- function(index,
 #' @param matching.variables A character vector indicating the match.id to use
 #' @param reporting.variables A optional character vector of matches to report
 #'                            upon (defaults to \code{matching.variables})
-#' @param check.residuals Logical - calculate residuals to check
-#' @param residual.warning.level Numeric - level at which to raise a warning
-#'                               that matching has not succeeded
-#' @return An object of class \code{MAICweights}
+#' @return An object of class \code{MaicAnalysis}, with components \code{weights}
+#'         and \code{aggregate}, containing the weights vector and the covariate
+#'         aggregate data respectively
 #' @example R/examples/maic.weight.example.R
 #' @export
 maicMatching <- function(index,
                          target,
                          dictionary,
                          matching.variables,
-                         reporting.variables = NULL,
-                         check.residuals = TRUE,
-                         residual.warning.level = 1e-3){
+                         reporting.variables = NULL){
   
   if (is.null(reporting.variables)){
     reporting.variables <- matching.variables
@@ -722,16 +892,8 @@ maicMatching <- function(index,
                             dictionary,
                             matching.variables)
   
-  
-  if (ip.mat$n.matches == 0){
-    wts <- rep(1, nrow(index))
-    wts[ip.mat$excluded] <- 0
-  } else {
-    wt <- maicWeight(ip.mat)
-    wts <- rep(0, nrow(index))
-    wts[!ip.mat$excluded] <- wt
-  }
-  
+  wts <- maicWeight(ip.mat)
+    
   covars <- reportCovariates(index,
                              target,
                              dictionary,
@@ -740,43 +902,10 @@ maicMatching <- function(index,
   
   res <- list(
     "weights" = wts,
-    "covariates" = covars
+    "aggregate" = covars
   )
   
-  class(res) <- "MAICWeights"
-  
-  if (check.residuals){
-    mtch.covars <- reportCovariates(index,
-                                    target,
-                                    dictionary,
-                                    matching.variables,
-                                    wts)
-    
-    resids <- numeric(0)
-    
-    for (mv in matching.variables){
-      rownames(dictionary) <- dictionary[, STR.MATCH.ID]
-      mv.type <- dictionary[mv, STR.MATCH.TYPE]
-      
-      resids[mv] <- 0
-      
-      if (!(mv.type %in% c("min", "max"))){
-        tgt <- mtch.covars$target.values[[mv]]
-        if (is.finite(tgt)){
-          adj <- mtch.covars$adjusted.values[[mv]]
-          
-          resids[mv] <- (tgt - adj) ^ 2
-        }
-      }
-    }
-    
-    res[["residuals"]] <- resids
-    
-    if (any(!is.finite(resids)) || 
-        sum(resids) > residual.warning.level){
-      warning("Matching failure on residual check - if using sd or var, consider relaxing warning level")
-    }
-  }
+  class(res) <- "MaicAnalysis"
   
   return (res)
 }

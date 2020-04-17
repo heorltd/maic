@@ -2,7 +2,8 @@
 
 S3method(maicWeight,MaicInput)
 S3method(maicWeight,default)
-export(MaicInput)
+S3method(plot,MaicWeight)
+S3method(print,MaicWeight)
 export(createMAICInput)
 export(maicMatching)
 export(maicWeight)

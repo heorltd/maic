@@ -9,9 +9,7 @@ maicMatching(
   target,
   dictionary,
   matching.variables,
-  reporting.variables = NULL,
-  check.residuals = TRUE,
-  residual.warning.level = 0.001
+  reporting.variables = NULL
 )
 }
 \arguments{
@@ -26,14 +24,11 @@ maicMatching(
 
 \item{reporting.variables}{A optional character vector of matches to report
 upon (defaults to \code{matching.variables})}
-
-\item{check.residuals}{Logical - calculate residuals to check}
-
-\item{residual.warning.level}{Numeric - level at which to raise a warning
-that matching has not succeeded}
 }
 \value{
-An object of class \code{MAICweights}
+An object of class \code{MaicAnalysis}, with components \code{weights}
+        and \code{aggregate}, containing the weights vector and the covariate
+        aggregate data respectively
 }
 \description{
 From index patient level data and a set of target baseline characteristics,
@@ -92,33 +87,31 @@ Finally, the \code{matching.variables} is a list or character vector containing
 \examples{
 target <- c("Air.Flow" = 60,
             "Water.Temp" = 21,
-            "Proportion.Acid.Conc.Less.Than.90" = 0.7,
+            "Prop.Acid.Conc.LT.90" = 0.7,
             "min.air.flow" = 55)
-stackloss$match.conc.lt.90 <- ifelse(stackloss$Acid.Conc. < 90, 1, 0)
 
-dict <- data.frame("match.id" = c("airflow",
-                                  "watertemp",
-                                  "acidconc",
-                                  "min.airflow"),
-                   "target.variable" = c("Air.Flow",
-                                         "Water.Temp",
-                                         "Proportion.Acid.Conc.Less.Than.90",
-                                         "min.air.flow"),
-                   "index.variable" = c("Air.Flow",
-                                        "Water.Temp",
-                                        "match.conc.lt.90",
-                                        "Air.Flow"),
-                   "match.type" = c("mean",
-                                    "mean",
-                                    "proportion",
-                                    "min"),
-                   stringsAsFactors = FALSE)
+stackloss$match.conc.lt.90 <- 
+  ifelse(stackloss$Acid.Conc. < 90, 1, 0)
 
-weightObj <- maicMatching(index = stackloss,
-                          target = target,
-                          dictionary = dict,
-                          matching.variables = c("airflow",
-                                                 "watertemp",
-                                                 "acidconc",
-                                                 "min.airflow"))
+dict <- data.frame(
+  "match.id" = 
+    c("airflow", "watertemp", 
+      "acidconc", "min.airflow"),
+  "target.variable" = 
+    c("Air.Flow", "Water.Temp", 
+      "Prop.Acid.Conc.LT.90", "min.air.flow"),
+  "index.variable" = 
+    c("Air.Flow", "Water.Temp", 
+      "match.conc.lt.90", "Air.Flow"),
+  "match.type" = 
+    c("mean", "mean", "proportion", "min"), 
+  stringsAsFactors = FALSE)
+
+weightObj <- maicMatching(
+  index = stackloss,
+  target = target,
+  dictionary = dict,
+  matching.variables = 
+    c("airflow", "watertemp", 
+      "acidconc", "min.airflow"))
 }
