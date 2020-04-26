@@ -6,3 +6,4 @@
 ^\.gitignore$
 ^\.Rproj.user$
 ^\.git$
+^CRAN-RELEASE$
