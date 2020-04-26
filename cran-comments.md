@@ -2,8 +2,10 @@
 * local windows 10 install, R 3.6.3
 * ubuntu 18.04 VM, R 3.5.1
 
-## R CMD check results:
-There were no ERRORs, no WARNINGs, no NOTEs.
+## R CMD check -as-cran results:
+There were no ERRORs, no WARNINGs.
+
+NOTE - new submission
 
 ## Fixes from last submission:
 
