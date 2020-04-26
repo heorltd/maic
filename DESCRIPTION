@@ -17,11 +17,11 @@ Description: A generalised workflow for generation of subject weights to be
     are equal to those of the sample in the comparator trial. The functions and
     classes included in this package wrap and abstract the process demonstrated
     in the UK National Institute for Health and Care Excellence Decision 
-    Support Unit (NICE DSU)'s example (Phillippo et al, (2016)),
-    providing a repeatable and easily
-    specifiable workflow for producing multiple comparison sets against
-    a variety of targets, with preprocessing for a number of aggregate target
-    forms (e.g. mean, median, domain limits).
+    Support Unit (NICE DSU)'s example (Phillippo et al, (2016) [see URL]),
+    providing a repeatable and easily specifiable workflow for producing 
+    multiple comparison variable sets against a variety of target studies, with
+    preprocessing for a number of aggregate target forms (e.g. mean, median, 
+    domain limits).
 License: GPL-3
 URL: https://github.com/heorltd/maic, 
     http://nicedsu.org.uk/technical-support-documents/population-adjusted-indirect-comparisons-maic-and-stc/
