@@ -38,10 +38,10 @@ The \code{dictionary} is a data frame containing at least 4 vectors:
 \item "match.type" - A string indicating the match type to use. The following
                values are accepted:
   \itemize{
-  \item minimum - records with index values lower than the target variable will
-            be discarded
-  \item maximum - records with index values greater than the target variable will
-            be discarded
+  \item minimum - records with index values lower than the target variable 
+            will be assigned 0 weight
+  \item maximum - records with index values greater than the target variable 
+            will be assigned 0 weight
   \item median - records with index values greater than the target variable will
            be assigned a value of 1, those lower 0. The target for matching
            will be a mean of 0.5

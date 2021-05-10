@@ -65,10 +65,10 @@ PTN.QUANTILE <- paste0(STR.QUANTILE, "\\.(\\d+)")
 #' \item "match.type" - A string indicating the match type to use. The following
 #'                values are accepted:
 #'   \itemize{
-#'   \item minimum - records with index values lower than the target variable will
-#'             be discarded
-#'   \item maximum - records with index values greater than the target variable will
-#'             be discarded
+#'   \item minimum - records with index values lower than the target variable 
+#'             will be assigned 0 weight
+#'   \item maximum - records with index values greater than the target variable 
+#'             will be assigned 0 weight
 #'   \item median - records with index values greater than the target variable will
 #'            be assigned a value of 1, those lower 0. The target for matching
 #'            will be a mean of 0.5
@@ -475,7 +475,10 @@ maicWeight.default <- function(x,
 #' Calculate the rebalanced covariates
 #' 
 #' This function calculates the raw, target and achieved covariates given
-#' a set of weights
+#' a set of weights.
+#' Note that for mean values, bootstrapped standard errors are used and so
+#' downstream values (such as p-values for difference) may differ from run
+#' to run if the random number stream is not consistent
 #' 
 #' @param index A matrix or data.frame containing patient-level data
 #' @param target A list containing target summary data
@@ -576,7 +579,7 @@ reportCovariates <- function(index,
       t.v <- as.numeric(target[[target.var]])
       raw.value[mv] <- mean(i.v, na.rm = TRUE)
       target.value[mv] <- t.v
-      adjusted.value[mv] <- sum(i.v * weights, na.rm = TRUE) / sum(weights)
+      adjusted.value[mv] <- Hmisc::wtd.mean(i.v, weights, na.rm = TRUE)
       
       if (is.finite(target.value[[mv]]) && is.finite(raw.value[[mv]])){
         # Caution - these are one-sample tests as cannot use

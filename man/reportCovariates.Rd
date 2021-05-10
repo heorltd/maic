@@ -38,7 +38,10 @@ An object of class \code{maic.covariates}
 }
 \description{
 This function calculates the raw, target and achieved covariates given
-a set of weights
+a set of weights.
+Note that for mean values, bootstrapped standard errors are used and so
+downstream values (such as p-values for difference) may differ from run
+to run if the random number stream is not consistent
 }
 \examples{
 target <- c("Air.Flow" = 60,
