@@ -255,6 +255,31 @@ test_that("Highly stressed matching",{
   stringsAsFactors = FALSE
   )
   
+  ##### Subgrouping #####
+  mtch.targets <- list(
+    "Proportion.Acid.Conc.lt.90" = 0
+  )
+  ipmat <- createMAICInput(index = stackloss,
+                           target = mtch.targets,
+                           dictionary = mtch.dict,
+                           matching.variables = c("acidconc.prop")
+  )
+  wts <- maicWeight(ipmat, control = list(reltol = 1e-12))
+  expect_equal(sum(wts!=0), sum(stackloss$match.conc.lt.90 == 0))
+  expect_true(all(wts[stackloss$match.conc.lt.90 == 1] == 0))
+  
+  mtch.targets <- list(
+    "Proportion.Acid.Conc.lt.90" = 1
+  )
+  ipmat <- createMAICInput(index = stackloss,
+                           target = mtch.targets,
+                           dictionary = mtch.dict,
+                           matching.variables = c("acidconc.prop")
+  )
+  wts <- maicWeight(ipmat, control = list(reltol = 1e-12))
+  expect_equal(sum(wts!=0), sum(stackloss$match.conc.lt.90 == 1))
+  expect_true(all(wts[stackloss$match.conc.lt.90 == 0] == 0))
+  
   ##### Force errors #####
   # Mean exceeding domain
   mtch.targets <- list(
