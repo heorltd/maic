@@ -8,6 +8,14 @@ output: github_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+# 11 May 2020
+
+The following fixes have been made:
+
+* Reporting when probabilities are equal to 1 or 0 no longer fails (#1)
+* \code{Hmisc::wtd.mean} is now used to summarise
+* Index and dictionary inputs are forced to data.frame (#2)
+* Clarification that the p-values for difference in mean are stochastically derived (#3)
 
 # 17 April 2020
 
