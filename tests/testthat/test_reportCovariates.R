@@ -1,23 +1,3 @@
-# test_reportCovariates.R
-
-###############################################################################
-# SCRIPT:
-# Name:       test_reportCovariates
-# Date:       17 Apr 2020
-# Version:    0.0.1
-# Authors:    Rob Young (robert.young@heor.co.uk)
-#
-# Description:
-#             Test the behaviour of the covariate reporting function
-#
-# Version History:
-# -----------------------------------------------------------------------------
-# - Version:  0.0.1
-# - Date:     17 Apr 2020
-# - Author:   Rob Young
-# - Changes:  Original version
-# -----------------------------------------------------------------------------
-###############################################################################
 context("Reporting of covariates")
 library(maic)
 

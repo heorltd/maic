@@ -1,23 +1,3 @@
-# test_maicWeighting.R
-
-###############################################################################
-# SCRIPT:
-# Name:       test_maicWeighting
-# Date:       16 Apr 2020
-# Version:    0.0.1
-# Authors:    Rob Young (robert.young@heor.co.uk)
-#
-# Description:
-#             Test the behaviour of the actual weighting algorithm
-#
-# Version History:
-# -----------------------------------------------------------------------------
-# - Version:  0.0.1
-# - Date:     16 Apr 2020
-# - Author:   Rob Young
-# - Changes:  Original version
-# -----------------------------------------------------------------------------
-###############################################################################
 context("MAIC weighting")
 library(maic)
 

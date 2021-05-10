@@ -23,6 +23,7 @@ Description: A generalised workflow for generation of subject weights to be
     preprocessing for a number of aggregate target forms (e.g. mean, median, 
     domain limits).
 License: GPL-3
+Encoding: UTF-8
 URL: https://github.com/heorltd/maic, 
     http://nicedsu.org.uk/technical-support-documents/population-adjusted-indirect-comparisons-maic-and-stc/
 Imports:

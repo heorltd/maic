@@ -1,35 +1,3 @@
-# maic.R
-
-###############################################################################
-# SCRIPT:
-# Name:       maic
-# Date:       02 Aug 2017
-# Version:    0.0.2
-# Authors:    Rob Young (robert.young@heor.co.uk)
-#
-# Description:
-#             Functions for handling the matching-adjusted indirect comparison
-#             processes. In this, patient-level data from an INDEX study is
-#             weighted to match a TARGET study, represented by summary data
-#
-# Version History:
-# - Version:  0.0.3
-# - Date:     28 Sep 2017
-# - Author:   Rob Young
-# - Changes:  Add in standard deviation / variance matching
-# -----------------------------------------------------------------------------
-# - Version:  0.0.2
-# - Date:     02 Aug
-# - Author:   Rob Young
-# - Changes:  Upper bound for proportions was set at 0, not 1!
-# -----------------------------------------------------------------------------
-# - Version:  0.0.1
-# - Date:     14 June
-# - Author:   Rob Young
-# - Changes:  Original version
-# -----------------------------------------------------------------------------
-###############################################################################
-
 #' @importFrom stats optim median sd var quantile chisq.test pf prop.test t.test
 
 STR.MATCH.ID <- "match.id"
@@ -123,7 +91,7 @@ createMAICInput <- function(index,
                       matching.variables,
                       x = FALSE){
   index <- as.data.frame(index)
-  
+  dictionary <- as.data.frame(dictionary)
   
   # Initialise variables required for return object
   target.values <- list()
@@ -501,6 +469,9 @@ reportCovariates <- function(index,
                              weights,
                              tidy = TRUE,
                              var.method = c("ML", "unbiased")){
+  index <- as.data.frame(index)
+  dictionary <- as.data.frame(dictionary)
+  
   ##### Sanity checking #####
   # Check vital columns in dictionary
   colnames(dictionary) <- tolower(colnames(dictionary))
