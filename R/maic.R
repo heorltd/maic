@@ -599,40 +599,45 @@ reportCovariates <- function(index,
       adjusted.value[mv] <- sum(i.v * weights, na.rm = TRUE) / sum(weights)
       
       if (is.finite(target.value[[mv]] && is.finite(raw.value[[mv]]))){
-        if (STR.SAMPLE.SIZE %in% colnames(dictionary) &&
-            !is.na(dictionary[mv, STR.SAMPLE.SIZE]) &&
-            !(as.character(dictionary[mv, STR.SAMPLE.SIZE]) == "")){
-          n <- as.integer(target[[as.character(dictionary[mv, STR.SAMPLE.SIZE])]])
-          
-          if (sum(i.v, na.rm = TRUE) < 20 || round(t.v * n) < 20 ||
-              max(0, ess - sum(i.v * weights, na.rm = TRUE)) < 20 || round(n *(1-t.v)) < 20){
-            sim.p <- FALSE
-          } else {
-            sim.p <- TRUE
-          }
-          
-          unwt.tst <- prop.test(matrix(c(sum(i.v, na.rm = TRUE), length(i.v) - sum(i.v, na.rm = TRUE),
-                                         round(t.v * n), round(n *(1-t.v))),
-                                       ncol = 2, byrow = TRUE))
-          unweighted.p.value[mv] <- unwt.tst$p.value
-          
-          wt.tst <- chisq.test(matrix(c(sum(i.v * weights, na.rm = TRUE), max(0, ess - sum(i.v * weights, na.rm = TRUE)),
-                                        round(t.v * n), round(n *(1-t.v))),
-                                      ncol = 2, byrow = TRUE), 
-                               simulate.p.value = sim.p)
-          weighted.p.value[mv] <- wt.tst$p.value
+        if (t.v <= 0 || t.v >= 1){
+          unweighted.p.value[mv] <- NA
+          weighted.p.value[mv] <- NA
         } else {
-          # One-sample test. CAUTION!
-          warning(paste("One-sample test for variable", mv))
-          unwt.tst <- prop.test(sum(i.v, na.rm = TRUE), 
-                                length(i.v),
+          if (STR.SAMPLE.SIZE %in% colnames(dictionary) &&
+              !is.na(dictionary[mv, STR.SAMPLE.SIZE]) &&
+              !(as.character(dictionary[mv, STR.SAMPLE.SIZE]) == "")){
+            n <- as.integer(target[[as.character(dictionary[mv, STR.SAMPLE.SIZE])]])
+            
+            if (sum(i.v, na.rm = TRUE) < 20 || round(t.v * n) < 20 ||
+                max(0, ess - sum(i.v * weights, na.rm = TRUE)) < 20 || round(n *(1-t.v)) < 20){
+              sim.p <- FALSE
+            } else {
+              sim.p <- TRUE
+            }
+            
+            unwt.tst <- prop.test(matrix(c(sum(i.v, na.rm = TRUE), length(i.v) - sum(i.v, na.rm = TRUE),
+                                           round(t.v * n), round(n *(1-t.v))),
+                                         ncol = 2, byrow = TRUE))
+            unweighted.p.value[mv] <- unwt.tst$p.value
+            
+            wt.tst <- chisq.test(matrix(c(sum(i.v * weights, na.rm = TRUE), max(0, ess - sum(i.v * weights, na.rm = TRUE)),
+                                          round(t.v * n), round(n *(1-t.v))),
+                                        ncol = 2, byrow = TRUE), 
+                                 simulate.p.value = sim.p)
+            weighted.p.value[mv] <- wt.tst$p.value
+          } else {
+            # One-sample test. CAUTION!
+            warning(paste("One-sample test for variable", mv))
+            unwt.tst <- prop.test(sum(i.v, na.rm = TRUE), 
+                                  length(i.v),
+                                  t.v)
+            unweighted.p.value[mv] <- unwt.tst$p.value
+            
+            wt.tst <- prop.test(sum(i.v * weights, na.rm = TRUE),
+                                sum(weights),
                                 t.v)
-          unweighted.p.value[mv] <- unwt.tst$p.value
-          
-          wt.tst <- prop.test(sum(i.v * weights, na.rm = TRUE),
-                              sum(weights),
-                              t.v)
-          weighted.p.value[mv] <- wt.tst$p.value
+            weighted.p.value[mv] <- wt.tst$p.value
+          }
         }
       } else {
         unweighted.p.value[mv] <- NA

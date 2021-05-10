@@ -1,7 +1,7 @@
 Package: maic
 Type: Package
 Title: Matching-Adjusted Indirect Comparison
-Version: 0.1.2
+Version: 0.1.3.9000
 Date: 2020-04-26
 Authors@R: c(person("Rob", "Young", role = c("aut", "cre"),
     email = "rob.young@heor.co.uk"))
@@ -29,6 +29,6 @@ Imports:
     Hmisc,
     matrixStats,
     weights
-RoxygenNote: 7.1.0
+RoxygenNote: 7.1.1
 Suggests: 
     testthat
