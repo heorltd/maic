@@ -1,23 +1,3 @@
-# test_reportCovariates.R
-
-###############################################################################
-# SCRIPT:
-# Name:       test_reportCovariates
-# Date:       17 Apr 2020
-# Version:    0.0.1
-# Authors:    Rob Young (robert.young@heor.co.uk)
-#
-# Description:
-#             Test the behaviour of the covariate reporting function
-#
-# Version History:
-# -----------------------------------------------------------------------------
-# - Version:  0.0.1
-# - Date:     17 Apr 2020
-# - Author:   Rob Young
-# - Changes:  Original version
-# -----------------------------------------------------------------------------
-###############################################################################
 context("Reporting of covariates")
 library(maic)
 
@@ -126,4 +106,36 @@ test_that("Presentation of weighted data", {
                  "Chi-squared approximation may be incorrect")
   expect_equal(nrow(rcv), 9)
   
+  ##### Subgrouping #####
+  mtch.targets <- list("Air.Flow.mean" = 65,
+                       "Proportion.Acid.Conc.lt.90" = 0)
+  ipmat <- createMAICInput(index = stackloss,
+                           target = mtch.targets,
+                           dictionary = mtch.dict,
+                           matching.variables = c("airflow.mean",
+                                                  "acidconc.prop")
+  )
+  wts <- maicWeight(ipmat, control = list(reltol = 1e-12))
+  # Expect no error
+  expect_error(rcv <- reportCovariates(stackloss,mtch.targets,
+                                       mtch.dict,
+                                       c("acidconc.prop"),
+                                       wts),
+               NA)
+  
+  mtch.targets <- list("Air.Flow.mean" = 65,
+                       "Proportion.Acid.Conc.lt.90" = 1)
+  ipmat <- createMAICInput(index = stackloss,
+                           target = mtch.targets,
+                           dictionary = mtch.dict,
+                           matching.variables = c("airflow.mean",
+                                                  "acidconc.prop")
+  )
+  wts <- maicWeight(ipmat, control = list(reltol = 1e-12))
+  # Expect no error
+  expect_error(rcv <- reportCovariates(stackloss,mtch.targets,
+                                       mtch.dict,
+                                       c("acidconc.prop"),
+                                       wts),
+               NA)
 })

@@ -1,35 +1,3 @@
-# maic.R
-
-###############################################################################
-# SCRIPT:
-# Name:       maic
-# Date:       02 Aug 2017
-# Version:    0.0.2
-# Authors:    Rob Young (robert.young@heor.co.uk)
-#
-# Description:
-#             Functions for handling the matching-adjusted indirect comparison
-#             processes. In this, patient-level data from an INDEX study is
-#             weighted to match a TARGET study, represented by summary data
-#
-# Version History:
-# - Version:  0.0.3
-# - Date:     28 Sep 2017
-# - Author:   Rob Young
-# - Changes:  Add in standard deviation / variance matching
-# -----------------------------------------------------------------------------
-# - Version:  0.0.2
-# - Date:     02 Aug
-# - Author:   Rob Young
-# - Changes:  Upper bound for proportions was set at 0, not 1!
-# -----------------------------------------------------------------------------
-# - Version:  0.0.1
-# - Date:     14 June
-# - Author:   Rob Young
-# - Changes:  Original version
-# -----------------------------------------------------------------------------
-###############################################################################
-
 #' @importFrom stats optim median sd var quantile chisq.test pf prop.test t.test
 
 STR.MATCH.ID <- "match.id"
@@ -65,10 +33,10 @@ PTN.QUANTILE <- paste0(STR.QUANTILE, "\\.(\\d+)")
 #' \item "match.type" - A string indicating the match type to use. The following
 #'                values are accepted:
 #'   \itemize{
-#'   \item minimum - records with index values lower than the target variable will
-#'             be discarded
-#'   \item maximum - records with index values greater than the target variable will
-#'             be discarded
+#'   \item minimum - records with index values lower than the target variable 
+#'             will be assigned 0 weight
+#'   \item maximum - records with index values greater than the target variable 
+#'             will be assigned 0 weight
 #'   \item median - records with index values greater than the target variable will
 #'            be assigned a value of 1, those lower 0. The target for matching
 #'            will be a mean of 0.5
@@ -123,7 +91,7 @@ createMAICInput <- function(index,
                       matching.variables,
                       x = FALSE){
   index <- as.data.frame(index)
-  
+  dictionary <- as.data.frame(dictionary)
   
   # Initialise variables required for return object
   target.values <- list()
@@ -475,7 +443,10 @@ maicWeight.default <- function(x,
 #' Calculate the rebalanced covariates
 #' 
 #' This function calculates the raw, target and achieved covariates given
-#' a set of weights
+#' a set of weights.
+#' Note that for mean values, bootstrapped standard errors are used and so
+#' downstream values (such as p-values for difference) may differ from run
+#' to run if the random number stream is not consistent
 #' 
 #' @param index A matrix or data.frame containing patient-level data
 #' @param target A list containing target summary data
@@ -498,6 +469,9 @@ reportCovariates <- function(index,
                              weights,
                              tidy = TRUE,
                              var.method = c("ML", "unbiased")){
+  index <- as.data.frame(index)
+  dictionary <- as.data.frame(dictionary)
+  
   ##### Sanity checking #####
   # Check vital columns in dictionary
   colnames(dictionary) <- tolower(colnames(dictionary))
@@ -576,7 +550,7 @@ reportCovariates <- function(index,
       t.v <- as.numeric(target[[target.var]])
       raw.value[mv] <- mean(i.v, na.rm = TRUE)
       target.value[mv] <- t.v
-      adjusted.value[mv] <- sum(i.v * weights, na.rm = TRUE) / sum(weights)
+      adjusted.value[mv] <- Hmisc::wtd.mean(i.v, weights, na.rm = TRUE)
       
       if (is.finite(target.value[[mv]]) && is.finite(raw.value[[mv]])){
         # Caution - these are one-sample tests as cannot use
@@ -599,40 +573,45 @@ reportCovariates <- function(index,
       adjusted.value[mv] <- sum(i.v * weights, na.rm = TRUE) / sum(weights)
       
       if (is.finite(target.value[[mv]] && is.finite(raw.value[[mv]]))){
-        if (STR.SAMPLE.SIZE %in% colnames(dictionary) &&
-            !is.na(dictionary[mv, STR.SAMPLE.SIZE]) &&
-            !(as.character(dictionary[mv, STR.SAMPLE.SIZE]) == "")){
-          n <- as.integer(target[[as.character(dictionary[mv, STR.SAMPLE.SIZE])]])
-          
-          if (sum(i.v, na.rm = TRUE) < 20 || round(t.v * n) < 20 ||
-              max(0, ess - sum(i.v * weights, na.rm = TRUE)) < 20 || round(n *(1-t.v)) < 20){
-            sim.p <- FALSE
-          } else {
-            sim.p <- TRUE
-          }
-          
-          unwt.tst <- prop.test(matrix(c(sum(i.v, na.rm = TRUE), length(i.v) - sum(i.v, na.rm = TRUE),
-                                         round(t.v * n), round(n *(1-t.v))),
-                                       ncol = 2, byrow = TRUE))
-          unweighted.p.value[mv] <- unwt.tst$p.value
-          
-          wt.tst <- chisq.test(matrix(c(sum(i.v * weights, na.rm = TRUE), max(0, ess - sum(i.v * weights, na.rm = TRUE)),
-                                        round(t.v * n), round(n *(1-t.v))),
-                                      ncol = 2, byrow = TRUE), 
-                               simulate.p.value = sim.p)
-          weighted.p.value[mv] <- wt.tst$p.value
+        if (t.v <= 0 || t.v >= 1){
+          unweighted.p.value[mv] <- NA
+          weighted.p.value[mv] <- NA
         } else {
-          # One-sample test. CAUTION!
-          warning(paste("One-sample test for variable", mv))
-          unwt.tst <- prop.test(sum(i.v, na.rm = TRUE), 
-                                length(i.v),
+          if (STR.SAMPLE.SIZE %in% colnames(dictionary) &&
+              !is.na(dictionary[mv, STR.SAMPLE.SIZE]) &&
+              !(as.character(dictionary[mv, STR.SAMPLE.SIZE]) == "")){
+            n <- as.integer(target[[as.character(dictionary[mv, STR.SAMPLE.SIZE])]])
+            
+            if (sum(i.v, na.rm = TRUE) < 20 || round(t.v * n) < 20 ||
+                max(0, ess - sum(i.v * weights, na.rm = TRUE)) < 20 || round(n *(1-t.v)) < 20){
+              sim.p <- FALSE
+            } else {
+              sim.p <- TRUE
+            }
+            
+            unwt.tst <- prop.test(matrix(c(sum(i.v, na.rm = TRUE), length(i.v) - sum(i.v, na.rm = TRUE),
+                                           round(t.v * n), round(n *(1-t.v))),
+                                         ncol = 2, byrow = TRUE))
+            unweighted.p.value[mv] <- unwt.tst$p.value
+            
+            wt.tst <- chisq.test(matrix(c(sum(i.v * weights, na.rm = TRUE), max(0, ess - sum(i.v * weights, na.rm = TRUE)),
+                                          round(t.v * n), round(n *(1-t.v))),
+                                        ncol = 2, byrow = TRUE), 
+                                 simulate.p.value = sim.p)
+            weighted.p.value[mv] <- wt.tst$p.value
+          } else {
+            # One-sample test. CAUTION!
+            warning(paste("One-sample test for variable", mv))
+            unwt.tst <- prop.test(sum(i.v, na.rm = TRUE), 
+                                  length(i.v),
+                                  t.v)
+            unweighted.p.value[mv] <- unwt.tst$p.value
+            
+            wt.tst <- prop.test(sum(i.v * weights, na.rm = TRUE),
+                                sum(weights),
                                 t.v)
-          unweighted.p.value[mv] <- unwt.tst$p.value
-          
-          wt.tst <- prop.test(sum(i.v * weights, na.rm = TRUE),
-                              sum(weights),
-                              t.v)
-          weighted.p.value[mv] <- wt.tst$p.value
+            weighted.p.value[mv] <- wt.tst$p.value
+          }
         }
       } else {
         unweighted.p.value[mv] <- NA

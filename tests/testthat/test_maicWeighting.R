@@ -1,23 +1,3 @@
-# test_maicWeighting.R
-
-###############################################################################
-# SCRIPT:
-# Name:       test_maicWeighting
-# Date:       16 Apr 2020
-# Version:    0.0.1
-# Authors:    Rob Young (robert.young@heor.co.uk)
-#
-# Description:
-#             Test the behaviour of the actual weighting algorithm
-#
-# Version History:
-# -----------------------------------------------------------------------------
-# - Version:  0.0.1
-# - Date:     16 Apr 2020
-# - Author:   Rob Young
-# - Changes:  Original version
-# -----------------------------------------------------------------------------
-###############################################################################
 context("MAIC weighting")
 library(maic)
 
@@ -254,6 +234,31 @@ test_that("Highly stressed matching",{
   ),
   stringsAsFactors = FALSE
   )
+  
+  ##### Subgrouping #####
+  mtch.targets <- list(
+    "Proportion.Acid.Conc.lt.90" = 0
+  )
+  ipmat <- createMAICInput(index = stackloss,
+                           target = mtch.targets,
+                           dictionary = mtch.dict,
+                           matching.variables = c("acidconc.prop")
+  )
+  wts <- maicWeight(ipmat, control = list(reltol = 1e-12))
+  expect_equal(sum(wts!=0), sum(stackloss$match.conc.lt.90 == 0))
+  expect_true(all(wts[stackloss$match.conc.lt.90 == 1] == 0))
+  
+  mtch.targets <- list(
+    "Proportion.Acid.Conc.lt.90" = 1
+  )
+  ipmat <- createMAICInput(index = stackloss,
+                           target = mtch.targets,
+                           dictionary = mtch.dict,
+                           matching.variables = c("acidconc.prop")
+  )
+  wts <- maicWeight(ipmat, control = list(reltol = 1e-12))
+  expect_equal(sum(wts!=0), sum(stackloss$match.conc.lt.90 == 1))
+  expect_true(all(wts[stackloss$match.conc.lt.90 == 0] == 0))
   
   ##### Force errors #####
   # Mean exceeding domain

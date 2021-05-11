@@ -1,23 +1,3 @@
-# test_maicInput.R
-
-###############################################################################
-# SCRIPT:
-# Name:       test_maicInput
-# Date:       16 Apr 2020
-# Version:    0.0.1
-# Authors:    Rob Young (robert.young@heor.co.uk)
-#
-# Description:
-#             Tests for the construction of a MAIC input matrix
-#
-# Version History:
-# -----------------------------------------------------------------------------
-# - Version:  0.0.1
-# - Date:     16 Apr 2020
-# - Author:   Rob Young
-# - Changes:  Original version
-# -----------------------------------------------------------------------------
-###############################################################################
 context("MAIC input")
 library(maic)
 
