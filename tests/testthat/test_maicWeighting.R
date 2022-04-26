@@ -15,33 +15,39 @@ test_that("Normal processing of correctly specified matching",{
     "Proportion.Acid.Conc.lt.90" = 0.7,
     "Water.Temp.decile.1" = 18,
     "Water.Temp.decile.9" = 25,
-    "Water.Temp.median" = 22
+    "Water.Temp.median" = 22,
+    "Water.Temp.percentile.5" = 18
   )
   
   mtch.dict <- data.frame(match.id = c(
     "airflow.mean", "airflow.min", "airflow.max", "airflow.sd", 
     "airflow.var", "acidconc.prop",
-    "watertemp.10tile", "watertemp.90tile", "watertemp.median"
+    "watertemp.10tile", "watertemp.90tile", "watertemp.median",
+    "watertemp.05tile"
   ),
   match.type = c(
     "mean", "min", "max", "sd",
     "var", "proportion",
-    "quantile.1", "quantile.90", "median"
+    "quantile.1", "quantile.90", "median",
+    "quantile.05"
   ),
   target.variable = c(
     "Air.Flow.mean", "Air.Flow.min", "Air.Flow.max", "Air.Flow.sd",
     "Air.Flow.var", "Proportion.Acid.Conc.lt.90",
-    "Water.Temp.decile.1", "Water.Temp.decile.9", "Water.Temp.median"
+    "Water.Temp.decile.1", "Water.Temp.decile.9", "Water.Temp.median",
+    "Water.Temp.percentile.5"
   ),
   index.variable = c(
     "Air.Flow", "Air.Flow", "Air.Flow", "Air.Flow", 
     "Air.Flow", "match.conc.lt.90",
-    "Water.Temp", "Water.Temp", "Water.Temp"
+    "Water.Temp", "Water.Temp", "Water.Temp",
+    "Water.Temp"
   ),
   supplementary.target.variable = c(
     "", "", "", "Air.Flow.mean",
     "Air.Flow.mean", "",
-    "", "", ""
+    "", "", "",
+    ""
   ),
   stringsAsFactors = FALSE
   )
@@ -174,11 +180,11 @@ test_that("Normal processing of correctly specified matching",{
   expect_equal(length(wts), 21)
   expect_true(length(unique(wts[stackloss$Water.Temp < 
                            mtch.targets[["Water.Temp.decile.1"]]])) == 1)
-  expect_true(length(unique(wts[stackloss$Water.Temp >= 
+  expect_true(length(unique(wts[stackloss$Water.Temp > 
                            mtch.targets[["Water.Temp.decile.1"]]])) == 1)
   # Have to have quite a high tolerance here
   expect_equal(as.numeric(Hmisc::wtd.quantile(stackloss$Water.Temp,
-                                   wts,
+                                   wts * 100000, # Overcome issue with Hmisc and non-integer weights
                                    probs = 0.1)),
                mtch.targets[["Water.Temp.decile.1"]],
                tolerance = 1e-2)
@@ -193,12 +199,32 @@ test_that("Normal processing of correctly specified matching",{
   expect_equal(length(wts), 21)
   expect_true(length(unique(wts[stackloss$Water.Temp <
                            mtch.targets[["Water.Temp.decile.9"]]])) == 1)
-  expect_true(length(unique(wts[stackloss$Water.Temp >= 
+  expect_true(length(unique(wts[stackloss$Water.Temp > 
                            mtch.targets[["Water.Temp.decile.9"]]])) == 1)
   expect_equal(as.numeric(Hmisc::wtd.quantile(stackloss$Water.Temp,
-                                              wts,
+                                              wts * 100000, # Overcome issue with Hmisc and non-integer weights
                                               probs = 0.9)),
                mtch.targets[["Water.Temp.decile.9"]],
+               tolerance = 1e-2)
+  
+  # Leading-zero quantile
+  ipmat <- createMAICInput(index = stackloss,
+                           target = mtch.targets,
+                           dictionary = mtch.dict,
+                           matching.variables = "watertemp.05tile")
+  wts <- maicWeight(ipmat,
+                    control = list(reltol = 1e-12))
+  
+  expect_equal(length(wts), 21)
+  expect_true(length(unique(wts[stackloss$Water.Temp < 
+                                  mtch.targets[["Water.Temp.percentile.5"]]])) == 1)
+  expect_true(length(unique(wts[stackloss$Water.Temp > 
+                                  mtch.targets[["Water.Temp.percentile.5"]]])) == 1)
+  # Have to have quite a high tolerance here
+  expect_equal(as.numeric(Hmisc::wtd.quantile(stackloss$Water.Temp,
+                                              wts * 100000, # Overcome issue with Hmisc and non-integer weights
+                                              probs = 0.05)),
+               mtch.targets[["Water.Temp.percentile.5"]],
                tolerance = 1e-2)
 })
 

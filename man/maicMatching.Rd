@@ -52,8 +52,8 @@ The \code{dictionary} is a data frame containing at least 4 vectors:
   \item maximum - records with index values greater than the target variable will
             be discarded
   \item median - records with index values greater than the target variable will
-           be assigned a value of 1, those lower 0. The target for matching
-           will be a mean of 0.5
+           be assigned a value of 1, those lower 0, and those equal 0.5.
+           The target for matching will be a mean of 0.5
   \item quantile.X - Generalisation of the median code. records with index values
                greater than the target variable will be assigned a value of 
                1, those lower 0. The target for matching will be a mean of 
