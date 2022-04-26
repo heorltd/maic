@@ -130,8 +130,8 @@ test_that("Normal processing of correctly specified matching",{
     same.weight <- same.weight || length(unique(wts.sd[af.fct==lvl])) != 1
   }
   expect_true(same.weight)
-  expect_equal(sqrt(Hmisc::wtd.var(stackloss$Air.Flow,
-                                   wts.sd,
+  expect_equal(sqrt(DescTools::Var(stackloss$Air.Flow,
+                                   weights = wts.sd,
                                    method = "ML")),
                mtch.targets[["Air.Flow.sd"]],
                tolerance = 1e-6)
@@ -153,9 +153,9 @@ test_that("Normal processing of correctly specified matching",{
     same.weight <- same.weight || length(unique(wts.var[af.fct==lvl])) != 1
   }
   expect_true(same.weight)
-  expect_equal(Hmisc::wtd.var(stackloss$Air.Flow,
-                                   wts.var,
-                                   method = "ML"),
+  expect_equal(DescTools::Var(stackloss$Air.Flow,
+                             weights = wts.var,
+                             method = "ML"),
                mtch.targets[["Air.Flow.var"]],
                tolerance = 1e-6)
   
@@ -177,9 +177,10 @@ test_that("Normal processing of correctly specified matching",{
   expect_true(length(unique(wts[stackloss$Water.Temp >= 
                            mtch.targets[["Water.Temp.decile.1"]]])) == 1)
   # Have to have quite a high tolerance here
-  expect_equal(as.numeric(Hmisc::wtd.quantile(stackloss$Water.Temp,
-                                   wts,
-                                   probs = 0.1)),
+  expect_equal(as.numeric(DescTools::Quantile(stackloss$Water.Temp,
+                                              weights = wts,
+                                              probs = 0.1,
+                                              type = 7)),
                mtch.targets[["Water.Temp.decile.1"]],
                tolerance = 1e-2)
   
@@ -195,9 +196,10 @@ test_that("Normal processing of correctly specified matching",{
                            mtch.targets[["Water.Temp.decile.9"]]])) == 1)
   expect_true(length(unique(wts[stackloss$Water.Temp >= 
                            mtch.targets[["Water.Temp.decile.9"]]])) == 1)
-  expect_equal(as.numeric(Hmisc::wtd.quantile(stackloss$Water.Temp,
-                                              wts,
-                                              probs = 0.9)),
+  expect_equal(as.numeric(DescTools::Quantile(stackloss$Water.Temp,
+                                             weights = wts,
+                                             probs = 0.9,
+                                             type = 5)),
                mtch.targets[["Water.Temp.decile.9"]],
                tolerance = 1e-2)
 })

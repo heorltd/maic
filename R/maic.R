@@ -456,7 +456,7 @@ maicWeight.default <- function(x,
 #' @param weights A numeric vector with weights corresponding to the index 
 #'                data rows
 #' @param tidy A boolean - return as a data frame (otherwise list)
-#' @param var.method Estimator type passed through to \code{\link{wtd.var}}.
+#' @param var.method Estimator type passed through to \code{\link{Var}}.
 #'                   Defaults to \code{ML}, as Bessel's correction not used in
 #'                   weights generation.
 #' @return An object of class \code{maic.covariates}
@@ -539,7 +539,8 @@ reportCovariates <- function(index,
       t.v <- as.numeric(target[[target.var]])
       raw.value[mv] <- median(i.v, na.rm = TRUE)
       target.value[mv] <- t.v
-      adjusted.value[mv] <- matrixStats::weightedMedian(i.v, weights, na.rm = TRUE)
+      adjusted.value[mv] <- DescTools::Median(i.v, weights = weights, 
+                                              na.rm = TRUE)
       # To test a difference in medians by the Mood's median test,
       # we need to form a combined median. We cannot do this with
       # summary data
@@ -550,7 +551,7 @@ reportCovariates <- function(index,
       t.v <- as.numeric(target[[target.var]])
       raw.value[mv] <- mean(i.v, na.rm = TRUE)
       target.value[mv] <- t.v
-      adjusted.value[mv] <- Hmisc::wtd.mean(i.v, weights, na.rm = TRUE)
+      adjusted.value[mv] <- DescTools::Mean(i.v, weights = weights, na.rm = TRUE)
       
       if (is.finite(target.value[[mv]]) && is.finite(raw.value[[mv]])){
         # Caution - these are one-sample tests as cannot use
@@ -623,7 +624,8 @@ reportCovariates <- function(index,
       t.v <- as.numeric(target[[target.var]])
       raw.value[mv] <- sd(i.v, na.rm = TRUE)
       target.value[mv] <- t.v
-      adjusted.value[mv] <- sqrt(Hmisc::wtd.var(i.v, weights, na.rm = TRUE,
+      adjusted.value[mv] <- sqrt(DescTools::Var(i.v, weights = weights,
+                                                na.rm = TRUE, 
                                                 method = var.method))
       
       if (is.finite(target.value[[mv]] && is.finite(raw.value[[mv]]))){
@@ -644,7 +646,7 @@ reportCovariates <- function(index,
           unweighted.p.value[mv] <- PVAL
           
           ##### Weighted test #####
-          STATISTIC <- Hmisc::wtd.var(i.v, weights, na.rm = TRUE,
+          STATISTIC <- DescTools::Var(i.v, weights = weights, na.rm = TRUE,
                                       method = var.method) / (t.v ^ 2)
           PVAL <- stats::pf(STATISTIC,
                             ess - 1,
@@ -666,7 +668,7 @@ reportCovariates <- function(index,
           unweighted.p.value[mv] <- PVAL
           
           ##### Weighted test #####
-          STATISTIC <- Hmisc::wtd.var(i.v, weights, na.rm = TRUE,
+          STATISTIC <- DescTools::Var(i.v, weights = weights, na.rm = TRUE,
                                       method = var.method) / (t.v ^ 2)
           PVAL <- stats::pf(STATISTIC,
                             ess - 1,
@@ -685,7 +687,7 @@ reportCovariates <- function(index,
       t.v <- as.numeric(target[[target.var]])
       raw.value[mv] <- var(i.v, na.rm = TRUE)
       target.value[mv] <- t.v
-      adjusted.value[mv] <- Hmisc::wtd.var(i.v, weights, na.rm = TRUE,
+      adjusted.value[mv] <- DescTools::Var(i.v, weights = weights, na.rm = TRUE,
                                            method = var.method)
       
       if (is.finite(target.value[[mv]] && is.finite(raw.value[[mv]]))){
@@ -706,7 +708,7 @@ reportCovariates <- function(index,
           unweighted.p.value[mv] <- PVAL
           
           ##### Weighted test #####
-          STATISTIC <- Hmisc::wtd.var(i.v, weights, na.rm = TRUE,
+          STATISTIC <- DescTools::Var(i.v, weights =  weights, na.rm = TRUE,
                                       method = var.method) / t.v
           PVAL <- stats::pf(STATISTIC,
                             ess - 1,
@@ -728,7 +730,7 @@ reportCovariates <- function(index,
           unweighted.p.value[mv] <- PVAL
           
           ##### Weighted test #####
-          STATISTIC <- Hmisc::wtd.var(i.v, weights, na.rm = TRUE,
+          STATISTIC <- DescTools::Var(i.v, weights = weights, na.rm = TRUE,
                                       method = var.method) / t.v
           PVAL <- stats::pf(STATISTIC,
                             ess - 1,
@@ -749,7 +751,13 @@ reportCovariates <- function(index,
       t.v <- as.numeric(target[[target.var]])
       raw.value[mv] <- quantile(i.v, d  / 10^(floor(log10(d)+1)), na.rm = TRUE)
       target.value[mv] <- t.v
-      adjusted.value[mv] <- Hmisc::wtd.quantile(i.v, weights, probs = d  / 10^(floor(log10(d)+1)), normwt = FALSE, na.rm = TRUE)
+      adjusted.value[mv] <- DescTools::Quantile(
+        i.v, 
+        weights = weights,
+        probs = d  / 10^(floor(log10(d)+1)),
+        names = FALSE,
+        na.rm = TRUE,
+        type = 5)
       
       # Similar to median by Mood's test, we need to form a combined quantile. 
       # We cannot do this with summary data

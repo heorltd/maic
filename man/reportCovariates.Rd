@@ -29,7 +29,7 @@ data rows}
 
 \item{tidy}{A boolean - return as a data frame (otherwise list)}
 
-\item{var.method}{Estimator type passed through to \code{\link{wtd.var}}.
+\item{var.method}{Estimator type passed through to \code{\link{Var}}.
 Defaults to \code{ML}, as Bessel's correction not used in
 weights generation.}
 }
