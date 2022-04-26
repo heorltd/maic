@@ -8,3 +8,4 @@
 ^\.git$
 ^CRAN-RELEASE$
 ^\.github$
+^revdep$

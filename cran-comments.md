@@ -1,6 +1,7 @@
 ## Test environments
-* win-builder (devel and release)
-* ubuntu 20.04.2 LTS, R 4.0.5
+* macOS-latest (release)
+* ubuntu-latest (devel, oldrel-1, release)
+* windows-latest (release)
 
 ## R CMD check -as-cran results:
 There were no ERRORs, no WARNINGs.

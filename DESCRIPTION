@@ -9,7 +9,7 @@ Maintainer: Rob Young <rob.young@heor.co.uk>
 Depends: R (>= 3.0.0)
 Description: A generalised workflow for generation of subject weights to be 
     used in Matching-Adjusted Indirect Comparison (MAIC) per Signorovitch et 
-    al (2012) <doi:10.1016/j.jval.2012.05.004>, Signorovitch et al (2010) 
+    al. (2012) <doi:10.1016/j.jval.2012.05.004>, Signorovitch et al (2010) 
     <doi:10.2165/11538370-000000000-00000>. In MAIC, unbiased 
     comparison between outcomes of two trials is facilitated by weighting the
     subject-level outcomes of one trial with weights derived such that the 
