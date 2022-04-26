@@ -14,7 +14,7 @@ STR.MEAN <- "mean"
 STR.PROPORTION <- "proportion"
 STR.STANDARD.DEVIATION <- "sd"
 STR.VARIANCE <- "var"
-PTN.QUANTILE <- paste0(STR.QUANTILE, "\\.(\\d+)")
+PTN.QUANTILE <- paste0(STR.QUANTILE, "(\\.\\d+)")
 
 #' Construct a MAIC input matrix
 #' 
@@ -219,8 +219,11 @@ createMAICInput <- function(index,
         t.v <- as.numeric(target[[target.var]])
         if (!is.finite(t.v)) next()
         excluded[!is.finite(i.v)] <- TRUE
-        pld.inputs[, mv] <- ifelse(i.v < t.v, 1, 0)
-        target.values[[mv]] <- d / 10^(floor(log10(d)+1))
+        pld.inputs[, mv] <- ifelse(
+          i.v == t.v,
+          0.5,
+          ifelse(i.v < t.v, 1, 0))
+        target.values[[mv]] <- d
         # Check if we have any values within bounds - else fitting will fail
         if (!all(excluded) && (target.values[[mv]] > 0) && all(pld.inputs[!excluded, mv] > 0)){
           stop("Cannot match quantile for ", mv, ", target is above maximum")
@@ -812,8 +815,8 @@ reportCovariates <- function(index,
 #'   \item maximum - records with index values greater than the target variable will
 #'             be discarded
 #'   \item median - records with index values greater than the target variable will
-#'            be assigned a value of 1, those lower 0. The target for matching
-#'            will be a mean of 0.5
+#'            be assigned a value of 1, those lower 0, and those equal 0.5.
+#'            The target for matching will be a mean of 0.5
 #'   \item quantile.X - Generalisation of the median code. records with index values
 #'                greater than the target variable will be assigned a value of 
 #'                1, those lower 0. The target for matching will be a mean of 

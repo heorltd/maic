@@ -156,7 +156,7 @@ test_that("A valid input matrix can be made for individual comparisons", {
   expect_equal(ipmat$n.adjustments, 1)
   expect_equal(ipmat$n.matches, 1)
   expect_equal(sum(ipmat$input.matrix>0),
-               sum(stackloss$Water.Temp < 
+               sum(stackloss$Water.Temp <= 
                      mtch.targets[["Water.Temp.decile.1"]]))
   
   ipmat <- createMAICInput(index = stackloss,

@@ -17,6 +17,7 @@ knitr::opts_chunk$set(
 # maic
 
 <!-- badges: start -->
+[![R-CMD-check](https://github.com/heorltd/maic/workflows/R-CMD-check/badge.svg)](https://github.com/heorltd/maic/actions)
 <!-- badges: end -->
 
 maic is repeatable workflow for calculating subject/observation weights for Matching Adjusted Indirect Comparison (MAIC). 
