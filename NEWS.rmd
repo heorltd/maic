@@ -8,6 +8,13 @@ output: github_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+# 26 Apr 23022
+
+The following fixes have been made:
+
+* Leading zeros are handled correctly on the quantile specification, allowing for quantiles less than 0.1
+* Dummy variables at the quantile level are set to 0.5
+
 # 11 May 2020
 
 The following fixes have been made:
