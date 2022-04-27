@@ -2,7 +2,7 @@ Package: maic
 Type: Package
 Title: Matching-Adjusted Indirect Comparison
 Version: 0.1.4
-Date: 2021-05-10
+Date: 2022-04-27
 Authors@R: c(person("Rob", "Young", role = c("aut", "cre"),
     email = "rob.young@heor.co.uk"))
 Maintainer: Rob Young <rob.young@heor.co.uk>
@@ -25,7 +25,7 @@ Description: A generalised workflow for generation of subject weights to be
 License: GPL-3
 Encoding: UTF-8
 URL: https://github.com/heorltd/maic, 
-    http://nicedsu.org.uk/technical-support-documents/population-adjusted-indirect-comparisons-maic-and-stc/
+    https://nicedsu.sites.sheffield.ac.uk/tsds/population-adjusted-indirect-comparisons-maic-and-stc
 Imports:
     Hmisc,
     matrixStats,
