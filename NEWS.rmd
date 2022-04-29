@@ -1,14 +1,14 @@
 ---
 title: "News for package maic"
 author: "Rob Young (rob.young@heor.co.uk)"
-date: "17/04/2020"
+date: "26/04/2022"
 output: github_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-# 26 Apr 23022
+# 26 Apr 2022
 
 The following fixes have been made:
 

@@ -1,18 +1,26 @@
 News for package maic
 ================
 Rob Young (<rob.young@heor.co.uk>)
-17/04/2020
+26/04/2022
+
+# 26 Apr 2022
+
+The following fixes have been made:
+
+-   Leading zeros are handled correctly on the quantile specification,
+    allowing for quantiles less than 0.1
+-   Dummy variables at the quantile level are set to 0.5
 
 # 11 May 2020
 
 The following fixes have been made:
 
 -   Reporting when probabilities are equal to 1 or 0 no longer fails
-    (\#1)
+    (#1)
 -    is now used to summarise
--   Index and dictionary inputs are forced to data.frame (\#2)
+-   Index and dictionary inputs are forced to data.frame (#2)
 -   Clarification that the p-values for difference in mean are
-    stochastically derived (\#3)
+    stochastically derived (#3)
 
 # 17 April 2020
 
